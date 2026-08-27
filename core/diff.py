@@ -13,7 +13,7 @@ class ChangeEntry:
     change_type: str  # "added" | "reworded" | "removed"
     old_text: str | None
     new_text: str | None
-    source_answer_id: int | None = None
+    source_answer_id: str | None = None
 
 
 @dataclass

@@ -1,5 +1,6 @@
 import json
-from sqlite3 import Connection
+
+from google.cloud.firestore_v1 import Client
 
 from core.resume_model import ContentModel
 from llm.groq_client import call_structured
@@ -13,7 +14,7 @@ def _format_confirmed_answers(confirmed_answers: list[dict]) -> str:
     lines = []
     for a in confirmed_answers:
         detail = f" Detail: {a['answer_detail_text']}" if a.get("answer_detail_text") else ""
-        lines.append(f"- id={a['id']}: \"{a['question_text']}\" -> confirmed yes.{detail}")
+        lines.append(f"- id={a['question_id']}: \"{a['question_text']}\" -> confirmed yes.{detail}")
     return "\n".join(lines)
 
 
@@ -22,7 +23,7 @@ def rewrite_resume(
     job_analysis: dict,
     confirmed_answers: list[dict],
     candidate_profile: dict,
-    conn: Connection,
+    db: Client,
     owner_uid: str,
 ) -> ContentModel:
     candidate_context = build_candidate_context(candidate_profile)
@@ -39,7 +40,7 @@ def rewrite_resume(
         user_prompt=user_prompt,
         schema=RESUME_REWRITE_SCHEMA,
         schema_name="resume_rewrite",
-        conn=conn,
+        db=db,
         owner_uid=owner_uid,
     )
     return ContentModel.model_validate(result)

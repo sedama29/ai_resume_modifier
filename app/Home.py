@@ -7,16 +7,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 
 import db.repository as repo
+from app.auth import storage_client
 from app.state import get_db, render_user_badge, require_user
-from config import MASTER_RESUME_PATH, STORAGE_DIR
-from core.parser import extract_header_fields, parse_master_tex
+from config import MASTER_RESUME_PATH
+from core.parser import extract_header_fields, parse_master_tex_from_string
 
 st.set_page_config(page_title="AI Resume Modifier", page_icon="📄", layout="wide")
 
 from app.styling import inject_custom_css
 inject_custom_css()
 
-conn = get_db()
+db = get_db()
 user = require_user()
 render_user_badge(user)
 
@@ -27,37 +28,36 @@ st.caption(
 )
 
 st.header("1. Master Resume")
-active = repo.get_active_master_resume_version(conn, user["uid"])
+master_resume = repo.get_master_resume(db, user["uid"])
 
 uploaded = st.file_uploader("Upload your master resume (.tex)", type=["tex"])
 use_default = st.button("Use existing file at Resources/main.tex", disabled=not Path(MASTER_RESUME_PATH).exists())
 
-resume_path_to_parse = None
+tex_text = None
 if uploaded is not None:
-    # Per-user destination -- MASTER_RESUME_PATH is a shared seed template,
-    # never a per-user upload target (two users uploading would otherwise
-    # silently overwrite the same file on disk).
-    dest = STORAGE_DIR / "masters" / user["uid"] / "main.tex"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(uploaded.getvalue())
-    resume_path_to_parse = str(dest)
+    tex_text = uploaded.getvalue().decode("utf-8")
 elif use_default:
-    resume_path_to_parse = MASTER_RESUME_PATH
+    tex_text = Path(MASTER_RESUME_PATH).read_text()
 
-if resume_path_to_parse:
+if tex_text is not None:
     try:
-        parsed = parse_master_tex(resume_path_to_parse)
+        parsed = parse_master_tex_from_string(tex_text)
     except Exception as e:
         st.error(f"Couldn't parse this resume: {e}")
     else:
-        skeleton_hash = hashlib.sha256(parsed.original_text.encode()).hexdigest()
-        repo.create_master_resume_version(conn, user["uid"], resume_path_to_parse, parsed.content_model, skeleton_hash)
+        # Per-user Storage path -- overwritten on every (re-)upload, including
+        # when using the shared template, so later pages always re-fetch from
+        # one uniform path rather than special-casing template users.
+        storage_path = f"masters/{user['uid']}/main.tex"
+        storage_client.upload_text(storage_path, tex_text)
+        skeleton_hash = hashlib.sha256(tex_text.encode()).hexdigest()
+        repo.set_master_resume(db, user["uid"], storage_path, parsed.content_model, skeleton_hash)
         st.success("Master resume parsed and saved as the active version.")
 
         header_fields = extract_header_fields(parsed.original_text)
-        existing_profile = repo.get_candidate_profile(conn, user["uid"]) or {}
+        existing_profile = repo.get_candidate_profile(db, user["uid"]) or {}
         repo.upsert_candidate_profile(
-            conn,
+            db,
             user["uid"],
             name=existing_profile.get("name") or header_fields.get("name"),
             phone=existing_profile.get("phone") or header_fields.get("phone"),
@@ -68,12 +68,12 @@ if resume_path_to_parse:
             education_summary=existing_profile.get("education_summary"),
             visa_status_text=existing_profile.get("visa_status_text"),
         )
-        active = repo.get_active_master_resume_version(conn, user["uid"])
+        master_resume = repo.get_master_resume(db, user["uid"])
 
-if active:
+if master_resume:
     from core.resume_model import ContentModel
 
-    cm = ContentModel.model_validate_json(active["content_model_json"])
+    cm = ContentModel.model_validate(master_resume["content_model"])
     with st.expander("Preview parsed content", expanded=False):
         st.write("**Summary**")
         st.write(cm.summary.text)
@@ -88,7 +88,7 @@ else:
 
 st.header("2. Candidate Profile")
 st.caption("Used to give the LLM accurate context for eligibility and matching. Edit freely.")
-profile = repo.get_candidate_profile(conn, user["uid"]) or {}
+profile = repo.get_candidate_profile(db, user["uid"]) or {}
 
 with st.form("profile_form"):
     name = st.text_input("Name", value=profile.get("name") or "")
@@ -110,12 +110,12 @@ with st.form("profile_form"):
     )
     if st.form_submit_button("Save profile"):
         repo.upsert_candidate_profile(
-            conn, user["uid"], name=name, phone=phone, email=email, github=github, location=location,
+            db, user["uid"], name=name, phone=phone, email=email, github=github, location=location,
             years_experience=years_experience, education_summary=education_summary,
             visa_status_text=visa_status_text,
         )
         st.success("Profile saved.")
 
 st.header("3. Start a New Application")
-if st.button("Go to Job Input →", disabled=active is None):
+if st.button("Go to Job Input →", disabled=master_resume is None):
     st.switch_page("pages/1_Job_Input.py")

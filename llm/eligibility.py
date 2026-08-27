@@ -1,12 +1,13 @@
 import json
-from sqlite3 import Connection
+
+from google.cloud.firestore_v1 import Client
 
 from llm.groq_client import call_structured
 from llm.prompts import build_candidate_context, eligibility_system_prompt
 from llm.schemas import ELIGIBILITY_SCHEMA
 
 
-def check_eligibility(job_analysis: dict, candidate_profile: dict, conn: Connection, owner_uid: str) -> dict:
+def check_eligibility(job_analysis: dict, candidate_profile: dict, db: Client, owner_uid: str) -> dict:
     candidate_context = build_candidate_context(candidate_profile)
     user_prompt = (
         "Job analysis (structured):\n"
@@ -18,6 +19,6 @@ def check_eligibility(job_analysis: dict, candidate_profile: dict, conn: Connect
         user_prompt=user_prompt,
         schema=ELIGIBILITY_SCHEMA,
         schema_name="eligibility",
-        conn=conn,
+        db=db,
         owner_uid=owner_uid,
     )

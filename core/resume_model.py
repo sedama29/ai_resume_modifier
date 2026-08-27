@@ -18,7 +18,7 @@ class Bullet(BaseModel):
     bullet_id: str
     text: str
     change: ChangeType = "unchanged"
-    source_answer_id: Optional[int] = None
+    source_answer_id: Optional[str] = None
 
 
 class ExperienceEntry(BaseModel):
@@ -31,7 +31,7 @@ class SkillLine(BaseModel):
     item_id: str
     text: str
     change: ChangeType = "unchanged"
-    source_answer_id: Optional[int] = None
+    source_answer_id: Optional[str] = None
 
 
 class Summary(BaseModel):

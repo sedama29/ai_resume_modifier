@@ -16,7 +16,7 @@ st.set_page_config(page_title="Admin: API Usage", page_icon="📈", layout="wide
 from app.styling import inject_custom_css
 inject_custom_css()
 
-conn = get_db()
+db = get_db()
 user = require_user()
 require_superuser(user)
 render_user_badge(user)
@@ -27,7 +27,7 @@ st.caption(
     "tokens for openai/gpt-oss-120b -- verify against console.groq.com/docs/models if this matters precisely."
 )
 
-rows = repo.list_api_usage(conn)
+rows = repo.list_api_usage(db)
 if not rows:
     st.info("No API usage recorded yet.")
     st.stop()
@@ -53,7 +53,7 @@ col5.metric("Estimated cost", f"${df['estimated_cost'].sum():.4f}")
 
 st.subheader("Usage by date")
 by_date = df.groupby("date").agg(
-    requests=("id", "count"),
+    requests=("created_at", "count"),
     total_tokens=("total_tokens", "sum"),
     estimated_cost=("estimated_cost", "sum"),
 ).sort_index(ascending=False)
@@ -61,7 +61,7 @@ st.dataframe(by_date, use_container_width=True)
 
 st.subheader("Usage by user")
 by_user = df.groupby("user_email").agg(
-    requests=("id", "count"),
+    requests=("created_at", "count"),
     total_tokens=("total_tokens", "sum"),
     estimated_cost=("estimated_cost", "sum"),
 ).sort_values("requests", ascending=False)

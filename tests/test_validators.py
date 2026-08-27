@@ -48,9 +48,9 @@ def test_added_bullet_with_confirmed_source_is_kept():
     original = _base_content_model()
     llm_output = original.model_copy(deep=True)
     llm_output.experience[0].bullets.append(
-        Bullet(bullet_id="exp1-bnew", text="Used Docker for containerized deployments.", change="added", source_answer_id=42)
+        Bullet(bullet_id="exp1-bnew", text="Used Docker for containerized deployments.", change="added", source_answer_id="q1")
     )
-    merged, warnings = validate_and_merge(original, llm_output, confirmed_answer_ids={42})
+    merged, warnings = validate_and_merge(original, llm_output, confirmed_answer_ids={"q1"})
 
     bullet_ids = {b.bullet_id for b in merged.experience[0].bullets}
     assert "exp1-bnew" in bullet_ids

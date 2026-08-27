@@ -16,14 +16,14 @@ st.set_page_config(page_title="Job Input", page_icon="📝", layout="wide")
 from app.styling import inject_custom_css
 inject_custom_css()
 
-conn = get_db()
+db = get_db()
 user = require_user()
 render_user_badge(user)
 
 st.title("Job Input")
 
-active_master = repo.get_active_master_resume_version(conn, user["uid"])
-if active_master is None:
+master_resume = repo.get_master_resume(db, user["uid"])
+if master_resume is None:
     st.warning("Upload a master resume on the Home page first.")
     st.stop()
 
@@ -59,23 +59,22 @@ jd_text = st.text_area(
 if st.button("Analyze Job", type="primary", disabled=not jd_text.strip()):
     with st.spinner("Analyzing job description..."):
         try:
-            analysis = analyze_job_description(jd_text, conn, user["uid"])
+            analysis = analyze_job_description(jd_text, db, user["uid"])
         except Exception as e:
             st.error(f"Job analysis failed: {e}")
             st.stop()
 
     application_id = repo.create_job_application(
-        conn,
+        db,
         user["uid"],
-        master_resume_version_id=active_master["id"],
         jd_text=jd_text,
         jd_source=jd_source,
         job_url=job_url,
         company=analysis.get("company"),
         job_title=analysis.get("job_title"),
     )
-    repo.save_job_analysis_result(conn, application_id, analysis)
-    repo.update_job_application_status(conn, application_id, "analyzed")
+    repo.save_job_analysis_result(db, user["uid"], application_id, analysis)
+    repo.update_job_application_status(db, user["uid"], application_id, "analyzed")
     set_active_application_id(application_id)
     st.session_state.pop("jd_text_draft", None)
     st.success(f"Analyzed: {analysis.get('company')} — {analysis.get('job_title')}")

@@ -11,9 +11,9 @@ instead (see Groq community forum thread #687). We defend against this with:
      instructions in the prompt, if json_schema mode keeps failing
 """
 import json
-from sqlite3 import Connection
 
 import jsonschema
+from google.cloud.firestore_v1 import Client
 from groq import Groq
 
 import db.repository as repo
@@ -51,7 +51,7 @@ def _extract_json(raw_text: str) -> dict:
 
 def call_structured(
     system_prompt: str, user_prompt: str, schema: dict, schema_name: str,
-    conn: Connection, owner_uid: str,
+    db: Client, owner_uid: str,
 ) -> dict:
     """Call Groq with a JSON schema and return a validated dict. Raises
     RuntimeError if the model fails to produce schema-valid JSON after retries.
@@ -80,7 +80,7 @@ def call_structured(
             usage = completion.usage
             if usage is not None:
                 repo.log_api_usage(
-                    conn, owner_uid, schema_name, GROQ_MODEL,
+                    db, owner_uid, schema_name, GROQ_MODEL,
                     usage.prompt_tokens, usage.completion_tokens, usage.total_tokens,
                 )
             raw_text = completion.choices[0].message.content

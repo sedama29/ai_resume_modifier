@@ -1,4 +1,3 @@
-import json
 import sys
 from pathlib import Path
 
@@ -60,31 +59,30 @@ def _restore_item(cm: ContentModel, ref: str, original_item):
                 e.bullets.append(Bullet(bullet_id=item_id, text=original_item.text))
 
 
-conn = get_db()
+db = get_db()
 user = require_user()
 render_user_badge(user)
 st.title("Review Changes")
 
-application_id = require_active_application_id(conn, user["uid"])
-active_master = repo.get_active_master_resume_version(conn, user["uid"])
-job_analysis_row = repo.get_latest_job_analysis(conn, application_id)
+application_id = require_active_application_id(db, user["uid"])
+master_resume = repo.get_master_resume(db, user["uid"])
+job_analysis = repo.get_latest_job_analysis(db, user["uid"], application_id)
 
-if active_master is None or job_analysis_row is None:
+if master_resume is None or job_analysis is None:
     st.error("Missing master resume or job analysis.")
     st.stop()
 
-original = ContentModel.model_validate_json(active_master["content_model_json"])
+original = ContentModel.model_validate(master_resume["content_model"])
 session_key = f"review_{application_id}"
 
 if session_key not in st.session_state or st.button("Regenerate proposed changes"):
-    confirmed_answers = repo.list_confirmed_answers_with_question_text(conn, application_id)
-    confirmed_answer_ids = {a["id"] for a in confirmed_answers}
-    candidate_profile = repo.get_candidate_profile(conn, user["uid"]) or {}
-    job_analysis = json.loads(job_analysis_row["raw_llm_response_json"])
+    confirmed_answers = repo.list_confirmed_answers_with_question_text(db, user["uid"], application_id)
+    confirmed_answer_ids = {a["question_id"] for a in confirmed_answers}
+    candidate_profile = repo.get_candidate_profile(db, user["uid"]) or {}
 
     with st.spinner("Generating tailored content..."):
         try:
-            llm_output = rewrite_resume(original, job_analysis, confirmed_answers, candidate_profile, conn, user["uid"])
+            llm_output = rewrite_resume(original, job_analysis, confirmed_answers, candidate_profile, db, user["uid"])
         except Exception as e:
             st.error(f"Resume rewrite failed: {e}")
             st.stop()
@@ -159,5 +157,5 @@ else:
                     _restore_item(final, change.ref, orig)
 
         st.session_state[f"final_content_model_{application_id}"] = final
-        repo.update_job_application_status(conn, application_id, "reviewed")
+        repo.update_job_application_status(db, user["uid"], application_id, "reviewed")
         st.switch_page("pages/6_Generate.py")

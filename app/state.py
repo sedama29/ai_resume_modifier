@@ -1,19 +1,15 @@
-import sqlite3
+from google.cloud.firestore_v1 import Client
 
 import streamlit as st
 
 import db.repository as repo
 from app.auth import authz
-from app.auth.admin_client import verify_id_token
+from app.auth.admin_client import get_firestore, verify_id_token
 from app.auth.firebase_login import firebase_login_widget
-from db.connection import get_connection, init_db
 
 
-def get_db() -> sqlite3.Connection:
-    if "db_initialized" not in st.session_state:
-        init_db()
-        st.session_state["db_initialized"] = True
-    return get_connection()
+def get_db() -> Client:
+    return get_firestore()
 
 
 def get_current_user() -> dict | None:
@@ -132,20 +128,20 @@ def render_user_badge(user: dict) -> None:
             sign_out()
 
 
-def get_active_application_id() -> int | None:
+def get_active_application_id() -> str | None:
     return st.session_state.get("active_application_id")
 
 
-def set_active_application_id(application_id: int) -> None:
+def set_active_application_id(application_id: str) -> None:
     st.session_state["active_application_id"] = application_id
 
 
-def require_active_application_id(conn: sqlite3.Connection, owner_uid: str) -> int:
+def require_active_application_id(db: Client, owner_uid: str) -> str:
     app_id = get_active_application_id()
     if app_id is None:
         st.warning("No active job application selected. Start from the Job Input page.")
         st.stop()
-    if repo.get_job_application_for_owner(conn, app_id, owner_uid) is None:
+    if repo.get_job_application(db, owner_uid, app_id) is None:
         st.session_state.pop("active_application_id", None)
         st.error("That application is no longer available.")
         st.stop()

@@ -17,7 +17,7 @@ def test_reworded_and_added_and_removed_detected():
     ])
     merged = _cm([
         Bullet(bullet_id="exp1-b1", text="Did thing A, reworded."),
-        Bullet(bullet_id="exp1-b3", text="Did new thing C.", change="added", source_answer_id=1),
+        Bullet(bullet_id="exp1-b3", text="Did new thing C.", change="added", source_answer_id="q1"),
     ])
     diff = compute_diff(original, merged)
     kinds = {c.ref: c.change_type for c in diff.changes}

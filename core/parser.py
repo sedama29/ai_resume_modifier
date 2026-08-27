@@ -148,7 +148,14 @@ def extract_header_fields(original_text: str) -> dict:
 
 
 def parse_master_tex(path: str) -> ParsedResume:
-    original_text = Path(path).read_text()
+    """Thin wrapper for local-file callers (the git-committed seed template at
+    Resources/main.tex, and tests). User-uploaded master resumes live in
+    Firebase Storage -- see parse_master_tex_from_string for those."""
+    return parse_master_tex_from_string(Path(path).read_text())
+
+
+def parse_master_tex_from_string(text: str) -> ParsedResume:
+    original_text = text
     regions: dict = {}
 
     # --- Summary ---

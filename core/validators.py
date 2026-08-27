@@ -65,7 +65,7 @@ def _known_terms(content_model: ContentModel) -> set[str]:
 
 
 def validate_and_merge(
-    original: ContentModel, llm_output: ContentModel, confirmed_answer_ids: set[int]
+    original: ContentModel, llm_output: ContentModel, confirmed_answer_ids: set[str]
 ) -> tuple[ContentModel, list[ValidationWarning]]:
     warnings: list[ValidationWarning] = []
     known_terms = _known_terms(original)
@@ -112,7 +112,7 @@ def _merge_summary(original: Summary, llm: Summary | None, known_terms: set[str]
 def _merge_experience(
     original: list[ExperienceEntry],
     llm: list[ExperienceEntry],
-    confirmed_answer_ids: set[int],
+    confirmed_answer_ids: set[str],
     known_terms: set[str],
     warnings: list[ValidationWarning],
 ) -> list[ExperienceEntry]:
@@ -197,7 +197,7 @@ def _merge_bullets(orig_entry: ExperienceEntry, llm_entry: ExperienceEntry, conf
 
 
 def _merge_skills(
-    original: list[SkillLine], llm: list[SkillLine], confirmed_answer_ids: set[int], known_terms: set[str], warnings: list[ValidationWarning]
+    original: list[SkillLine], llm: list[SkillLine], confirmed_answer_ids: set[str], known_terms: set[str], warnings: list[ValidationWarning]
 ) -> list[SkillLine]:
     if not llm:
         warnings.append(ValidationWarning("skills", "skills", "fallback_to_original", "LLM returned no skills; kept original list."))

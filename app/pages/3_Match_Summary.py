@@ -1,4 +1,3 @@
-import json
 import sys
 from pathlib import Path
 
@@ -16,45 +15,40 @@ st.set_page_config(page_title="Match Summary", page_icon="📊", layout="wide")
 from app.styling import inject_custom_css
 inject_custom_css()
 
-conn = get_db()
+db = get_db()
 user = require_user()
 render_user_badge(user)
 
 st.title("Match Summary")
 
-application_id = require_active_application_id(conn, user["uid"])
-application = repo.get_job_application(conn, application_id)
-job_analysis_row = repo.get_latest_job_analysis(conn, application_id)
-active_master = repo.get_active_master_resume_version(conn, user["uid"])
+application_id = require_active_application_id(db, user["uid"])
+application = repo.get_job_application(db, user["uid"], application_id)
+job_analysis = repo.get_latest_job_analysis(db, user["uid"], application_id)
+master_resume = repo.get_master_resume(db, user["uid"])
 
-if job_analysis_row is None or active_master is None:
+if job_analysis is None or master_resume is None:
     st.error("Missing job analysis or master resume. Go back and complete earlier steps.")
     st.stop()
 
-match_row = repo.get_latest_match_result(conn, application_id)
+match = repo.get_latest_match_result(db, user["uid"], application_id)
 
-if match_row is None or st.button("Re-run match analysis"):
-    content_model = ContentModel.model_validate_json(active_master["content_model_json"])
-    job_analysis = json.loads(job_analysis_row["raw_llm_response_json"])
-    candidate_profile = repo.get_candidate_profile(conn, user["uid"]) or {}
+if match is None or st.button("Re-run match analysis"):
+    content_model = ContentModel.model_validate(master_resume["content_model"])
+    candidate_profile = repo.get_candidate_profile(db, user["uid"]) or {}
     with st.spinner("Comparing your resume against this job..."):
         try:
-            match = match_resume_to_job(content_model, job_analysis, candidate_profile, conn, user["uid"])
+            match = match_resume_to_job(content_model, job_analysis, candidate_profile, db, user["uid"])
         except Exception as e:
             st.error(f"Match analysis failed: {e}")
             st.stop()
-    repo.save_match_result(conn, application_id, match)
-    repo.update_job_application_status(conn, application_id, "matched")
-    match_row = repo.get_latest_match_result(conn, application_id)
+    repo.save_match_result(db, user["uid"], application_id, match)
+    repo.update_job_application_status(db, user["uid"], application_id, "matched")
 
-present = json.loads(match_row["skills_present_json"] or "[]")
-missing = json.loads(match_row["skills_missing_json"] or "[]")
-implied = json.loads(match_row["skills_implied_json"] or "[]")
+present = match.get("present") or []
+missing = match.get("missing") or []
+implied = match.get("potentially_implied") or []
 
-required_total = len(job_analysis_row["required_skills_json"] and json.loads(job_analysis_row["required_skills_json"]) or [])
-required_present = len([p for p in present if p["skill"] in json.loads(job_analysis_row["required_skills_json"] or "[]")])
-
-st.metric("Overall Match", f"{match_row['match_score']:.0f}%" if match_row["match_score"] is not None else "N/A")
+st.metric("Overall Match", f"{match['match_score']:.0f}%" if match.get("match_score") is not None else "N/A")
 st.caption("This score is only an estimate.")
 
 col1, col2 = st.columns(2)

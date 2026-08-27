@@ -1,5 +1,6 @@
 import json
-from sqlite3 import Connection
+
+from google.cloud.firestore_v1 import Client
 
 from core.resume_model import ContentModel
 from llm.groq_client import call_structured
@@ -9,7 +10,7 @@ from llm.schemas import SKILL_MATCH_SCHEMA
 
 def match_resume_to_job(
     content_model: ContentModel, job_analysis: dict, candidate_profile: dict,
-    conn: Connection, owner_uid: str,
+    db: Client, owner_uid: str,
 ) -> dict:
     candidate_context = build_candidate_context(candidate_profile)
     resume_summary_for_matching = {
@@ -29,6 +30,6 @@ def match_resume_to_job(
         user_prompt=user_prompt,
         schema=SKILL_MATCH_SCHEMA,
         schema_name="skill_match",
-        conn=conn,
+        db=db,
         owner_uid=owner_uid,
     )

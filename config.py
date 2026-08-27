@@ -25,8 +25,6 @@ BASE_DIR = Path(__file__).resolve().parent
 GROQ_API_KEY = _get_secret("GROQ_API_KEY", "")
 GROQ_MODEL = "openai/gpt-oss-120b"
 
-DB_PATH = os.environ.get("DB_PATH", str(BASE_DIR / "storage" / "app.db"))
-STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", str(BASE_DIR / "storage")))
 MASTER_RESUME_PATH = str(BASE_DIR / "Resources" / "main.tex")
 
 OVERLEAF_BROWSER_PROFILE_DIR = str(BASE_DIR / "storage" / "browser_profile")
