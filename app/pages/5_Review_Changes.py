@@ -14,7 +14,7 @@ from llm.resume_rewrite import rewrite_resume
 
 st.set_page_config(page_title="Review Changes", page_icon="🔎", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
 
 
@@ -62,7 +62,8 @@ def _restore_item(cm: ContentModel, ref: str, original_item):
 db = get_db()
 user = require_user()
 render_user_badge(user)
-st.title("Review Changes")
+page_header("🔎", "Review Changes")
+progress_stepper("review")
 
 application_id = require_active_application_id(db, user["uid"])
 master_resume = repo.get_master_resume(db, user["uid"])

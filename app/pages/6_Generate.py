@@ -18,14 +18,15 @@ from latex.compiler import compile_tex
 
 st.set_page_config(page_title="Generate", page_icon="📄", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-st.title("Generate Resume")
+page_header("📄", "Generate Resume")
+progress_stepper("generate")
 
 application_id = require_active_application_id(db, user["uid"])
 application = repo.get_job_application(db, user["uid"], application_id)

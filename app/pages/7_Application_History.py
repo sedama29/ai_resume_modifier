@@ -11,14 +11,14 @@ from app.state import get_db, render_user_badge, require_user, set_active_applic
 
 st.set_page_config(page_title="Application History", page_icon="📚", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-st.title("Application History")
+page_header("📚", "Application History")
 
 applications = repo.list_job_applications(db, user["uid"])
 

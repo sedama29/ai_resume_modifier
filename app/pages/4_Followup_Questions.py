@@ -11,18 +11,19 @@ from llm.followup_questions import generate_followup_questions
 
 st.set_page_config(page_title="Follow-up Questions", page_icon="❓", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-st.title("Follow-up Questions")
-st.caption(
-    "Your resume may not mention every technology you've actually used. "
-    "Answer honestly -- only confirmed 'Yes' answers can ever be added to your resume."
+page_header(
+    "❓", "Follow-up Questions",
+    "Your resume may not mention every technology you've actually used -- answer honestly, "
+    "only confirmed 'Yes' answers can ever be added.",
 )
+progress_stepper("questions")
 
 application_id = require_active_application_id(db, user["uid"])
 match = repo.get_latest_match_result(db, user["uid"], application_id)

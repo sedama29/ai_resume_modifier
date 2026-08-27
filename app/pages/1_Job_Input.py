@@ -13,14 +13,15 @@ from llm.job_analysis import analyze_job_description
 
 st.set_page_config(page_title="Job Input", page_icon="📝", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-st.title("Job Input")
+page_header("📝", "Job Input", "Paste a posting or link to it -- we'll analyze it before touching your resume.")
+progress_stepper("job_input")
 
 master_resume = repo.get_master_resume(db, user["uid"])
 if master_resume is None:

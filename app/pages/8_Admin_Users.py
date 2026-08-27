@@ -10,7 +10,7 @@ from app.state import get_db, render_user_badge, require_superuser, require_user
 
 st.set_page_config(page_title="Admin: Users", page_icon="🔐", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header
 inject_custom_css()
 
 db = get_db()  # unused directly here, but keeps the require_user() page convention consistent
@@ -18,8 +18,7 @@ user = require_user()
 require_superuser(user)
 render_user_badge(user)
 
-st.title("Admin: User Management")
-st.caption("Changes here take effect immediately -- authorization is re-checked from Firestore on every page load.")
+page_header("🔐", "Admin: User Management", "Changes take effect immediately -- authorization is re-checked from Firestore on every page load.")
 
 users = sorted(authz.list_users(), key=lambda u: u.get("email", ""))
 

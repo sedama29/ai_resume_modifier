@@ -14,108 +14,129 @@ from core.parser import extract_header_fields, parse_master_tex_from_string
 
 st.set_page_config(page_title="AI Resume Modifier", page_icon="📄", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-st.title("AI Resume Modifier")
-st.caption(
+page_header(
+    "📄", "AI Resume Modifier",
     "Job description → Eligibility check → Experience questions → Resume "
-    "customization → Review → PDF → Application history."
+    "customization → Review → PDF → Application history.",
 )
 
-st.header("1. Master Resume")
-master_resume = repo.get_master_resume(db, user["uid"])
 
-uploaded = st.file_uploader("Upload your master resume (.tex)", type=["tex"])
-use_default = st.button("Use existing file at Resources/main.tex", disabled=not Path(MASTER_RESUME_PATH).exists())
+def render_setup_section(master_resume, profile):
+    st.subheader("Master Resume")
+    uploaded = st.file_uploader("Upload your master resume (.tex)", type=["tex"])
+    use_default = st.button(
+        "Use existing file at Resources/main.tex", disabled=not Path(MASTER_RESUME_PATH).exists()
+    )
 
-tex_text = None
-if uploaded is not None:
-    tex_text = uploaded.getvalue().decode("utf-8")
-elif use_default:
-    tex_text = Path(MASTER_RESUME_PATH).read_text()
+    tex_text = None
+    if uploaded is not None:
+        tex_text = uploaded.getvalue().decode("utf-8")
+    elif use_default:
+        tex_text = Path(MASTER_RESUME_PATH).read_text()
 
-if tex_text is not None:
-    try:
-        parsed = parse_master_tex_from_string(tex_text)
-    except Exception as e:
-        st.error(f"Couldn't parse this resume: {e}")
+    if tex_text is not None:
+        try:
+            parsed = parse_master_tex_from_string(tex_text)
+        except Exception as e:
+            st.error(f"Couldn't parse this resume: {e}")
+        else:
+            # Per-user Storage path -- overwritten on every (re-)upload, including
+            # when using the shared template, so later pages always re-fetch from
+            # one uniform path rather than special-casing template users.
+            storage_path = f"masters/{user['uid']}/main.tex"
+            storage_client.upload_text(storage_path, tex_text)
+            skeleton_hash = hashlib.sha256(tex_text.encode()).hexdigest()
+            repo.set_master_resume(db, user["uid"], storage_path, parsed.content_model, skeleton_hash)
+            st.success("Master resume parsed and saved as the active version.")
+
+            header_fields = extract_header_fields(parsed.original_text)
+            repo.upsert_candidate_profile(
+                db,
+                user["uid"],
+                name=profile.get("name") or header_fields.get("name"),
+                phone=profile.get("phone") or header_fields.get("phone"),
+                email=profile.get("email") or header_fields.get("email") or user["email"],
+                github=profile.get("github") or header_fields.get("github"),
+                location=profile.get("location") or header_fields.get("location"),
+                years_experience=profile.get("years_experience"),
+                education_summary=profile.get("education_summary"),
+                visa_status_text=profile.get("visa_status_text"),
+            )
+            master_resume = repo.get_master_resume(db, user["uid"])
+            profile = repo.get_candidate_profile(db, user["uid"]) or {}
+
+    if master_resume:
+        from core.resume_model import ContentModel
+
+        cm = ContentModel.model_validate(master_resume["content_model"])
+        with st.expander("Preview parsed content", expanded=False):
+            st.write("**Summary**")
+            st.write(cm.summary.text)
+            st.write("**Experience**")
+            for e in cm.experience:
+                st.write(f"- {e.org_label} ({len(e.bullets)} bullets)")
+            st.write("**Skills**")
+            for s in cm.skills:
+                st.write(f"- {s.text}")
     else:
-        # Per-user Storage path -- overwritten on every (re-)upload, including
-        # when using the shared template, so later pages always re-fetch from
-        # one uniform path rather than special-casing template users.
-        storage_path = f"masters/{user['uid']}/main.tex"
-        storage_client.upload_text(storage_path, tex_text)
-        skeleton_hash = hashlib.sha256(tex_text.encode()).hexdigest()
-        repo.set_master_resume(db, user["uid"], storage_path, parsed.content_model, skeleton_hash)
-        st.success("Master resume parsed and saved as the active version.")
+        st.info("Upload your master resume .tex to get started.")
 
-        header_fields = extract_header_fields(parsed.original_text)
-        existing_profile = repo.get_candidate_profile(db, user["uid"]) or {}
-        repo.upsert_candidate_profile(
-            db,
-            user["uid"],
-            name=existing_profile.get("name") or header_fields.get("name"),
-            phone=existing_profile.get("phone") or header_fields.get("phone"),
-            email=existing_profile.get("email") or header_fields.get("email") or user["email"],
-            github=existing_profile.get("github") or header_fields.get("github"),
-            location=existing_profile.get("location") or header_fields.get("location"),
-            years_experience=existing_profile.get("years_experience"),
-            education_summary=existing_profile.get("education_summary"),
-            visa_status_text=existing_profile.get("visa_status_text"),
+    st.subheader("Candidate Profile")
+    st.caption("Used to give the LLM accurate context for eligibility and matching.")
+
+    with st.form("profile_form"):
+        name = st.text_input("Name", value=profile.get("name") or "")
+        phone = st.text_input("Phone", value=profile.get("phone") or "")
+        email = st.text_input("Email", value=profile.get("email") or user["email"])
+        github = st.text_input("GitHub", value=profile.get("github") or "")
+        location = st.text_input("Location", value=profile.get("location") or "")
+        years_experience = st.number_input(
+            "Approximate years of professional experience", min_value=0.0, step=0.5,
+            value=float(profile.get("years_experience") or 0),
         )
-        master_resume = repo.get_master_resume(db, user["uid"])
+        education_summary = st.text_area(
+            "Education summary", value=profile.get("education_summary") or "",
+            placeholder="e.g. M.S. Computer Science, Texas A&M University-Corpus Christi",
+        )
+        visa_status_text = st.text_area(
+            "Work authorization status", value=profile.get("visa_status_text") or "",
+            placeholder="e.g. H-1B, sponsored by a nonprofit research institute",
+        )
+        if st.form_submit_button("Save profile"):
+            repo.upsert_candidate_profile(
+                db, user["uid"], name=name, phone=phone, email=email, github=github, location=location,
+                years_experience=years_experience, education_summary=education_summary,
+                visa_status_text=visa_status_text,
+            )
+            st.success("Profile saved.")
 
-if master_resume:
-    from core.resume_model import ContentModel
+    return repo.get_master_resume(db, user["uid"])
 
-    cm = ContentModel.model_validate(master_resume["content_model"])
-    with st.expander("Preview parsed content", expanded=False):
-        st.write("**Summary**")
-        st.write(cm.summary.text)
-        st.write("**Experience**")
-        for e in cm.experience:
-            st.write(f"- {e.org_label} ({len(e.bullets)} bullets)")
-        st.write("**Skills**")
-        for s in cm.skills:
-            st.write(f"- {s.text}")
-else:
-    st.info("Upload your master resume .tex to get started.")
 
-st.header("2. Candidate Profile")
-st.caption("Used to give the LLM accurate context for eligibility and matching. Edit freely.")
+master_resume = repo.get_master_resume(db, user["uid"])
 profile = repo.get_candidate_profile(db, user["uid"]) or {}
+setup_complete = master_resume is not None and bool(profile.get("name"))
 
-with st.form("profile_form"):
-    name = st.text_input("Name", value=profile.get("name") or "")
-    phone = st.text_input("Phone", value=profile.get("phone") or "")
-    email = st.text_input("Email", value=profile.get("email") or user["email"])
-    github = st.text_input("GitHub", value=profile.get("github") or "")
-    location = st.text_input("Location", value=profile.get("location") or "")
-    years_experience = st.number_input(
-        "Approximate years of professional experience", min_value=0.0, step=0.5,
-        value=float(profile.get("years_experience") or 0),
-    )
-    education_summary = st.text_area(
-        "Education summary", value=profile.get("education_summary") or "",
-        placeholder="e.g. M.S. Computer Science, Texas A&M University-Corpus Christi",
-    )
-    visa_status_text = st.text_area(
-        "Work authorization status", value=profile.get("visa_status_text") or "",
-        placeholder="e.g. H-1B, sponsored by a nonprofit research institute",
-    )
-    if st.form_submit_button("Save profile"):
-        repo.upsert_candidate_profile(
-            db, user["uid"], name=name, phone=phone, email=email, github=github, location=location,
-            years_experience=years_experience, education_summary=education_summary,
-            visa_status_text=visa_status_text,
-        )
-        st.success("Profile saved.")
+if setup_complete:
+    st.success("Setup complete -- ready to start a new application.")
+    if st.button("Go to Job Input →", type="primary"):
+        st.switch_page("pages/1_Job_Input.py")
 
-st.header("3. Start a New Application")
-if st.button("Go to Job Input →", disabled=master_resume is None):
-    st.switch_page("pages/1_Job_Input.py")
+    with st.expander("⚙️ Master Resume & Candidate Profile (edit)"):
+        master_resume = render_setup_section(master_resume, profile)
+
+    st.divider()
+    st.caption("Application history and past resume versions are on the Application History page.")
+else:
+    st.info("One-time setup: upload your master resume and fill in your profile below. You can edit these anytime later.")
+    master_resume = render_setup_section(master_resume, profile)
+    st.divider()
+    if st.button("Go to Job Input →", type="primary", disabled=master_resume is None):
+        st.switch_page("pages/1_Job_Input.py")

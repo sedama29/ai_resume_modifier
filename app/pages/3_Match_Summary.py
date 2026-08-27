@@ -12,14 +12,15 @@ from llm.skill_match import match_resume_to_job
 
 st.set_page_config(page_title="Match Summary", page_icon="📊", layout="wide")
 
-from app.styling import inject_custom_css
+from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-st.title("Match Summary")
+page_header("📊", "Match Summary")
+progress_stepper("match")
 
 application_id = require_active_application_id(db, user["uid"])
 application = repo.get_job_application(db, user["uid"], application_id)

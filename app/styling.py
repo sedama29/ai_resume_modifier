@@ -98,6 +98,68 @@ def inject_custom_css() -> None:
     st.markdown(_CSS, unsafe_allow_html=True)
 
 
+def page_header(icon: str, title: str, subtitle: str = "") -> None:
+    """Replaces bare st.title() -- a bigger, icon-led header consistent with
+    the sign-in hero's style instead of Streamlit's plain default heading."""
+    subtitle_html = f'<div style="color:#64748B;font-size:1.05em;margin-top:2px;">{subtitle}</div>' if subtitle else ""
+    st.markdown(
+        f"""
+        <div style="padding:4px 0 8px 0;">
+          <div style="font-size:2em;font-weight:800;letter-spacing:-0.02em;color:#0F172A;
+                      display:flex;align-items:center;gap:12px;">
+            <span style="font-size:1.05em;">{icon}</span> {title}
+          </div>
+          {subtitle_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+_FLOW_STEPS = [
+    ("job_input", "Job Input"),
+    ("eligibility", "Eligibility"),
+    ("match", "Match"),
+    ("questions", "Questions"),
+    ("review", "Review"),
+    ("generate", "Generate"),
+]
+
+
+def progress_stepper(current_key: str) -> None:
+    """Horizontal stepper across the top of each flow page -- completed steps
+    checked, current step highlighted, future steps dimmed."""
+    keys = [k for k, _ in _FLOW_STEPS]
+    current_idx = keys.index(current_key) if current_key in keys else -1
+
+    parts = []
+    for idx, (key, label) in enumerate(_FLOW_STEPS):
+        if idx < current_idx:
+            circle, circle_style, label_style = "✓", "background:#2563EB;color:white;", "color:#2563EB;font-weight:600;"
+        elif idx == current_idx:
+            circle, circle_style = str(idx + 1), "background:#2563EB;color:white;box-shadow:0 0 0 4px rgba(37,99,235,0.15);"
+            label_style = "color:#0F172A;font-weight:700;"
+        else:
+            circle, circle_style, label_style = str(idx + 1), "background:#E2E8F0;color:#94A3B8;", "color:#94A3B8;font-weight:500;"
+
+        if idx > 0:
+            line_color = "#2563EB" if idx <= current_idx else "#E2E8F0"
+            parts.append(f'<div style="flex:1;height:2px;background:{line_color};margin-top:15px;min-width:20px;"></div>')
+
+        parts.append(
+            '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;">'
+            f'<div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+            f'font-size:0.8em;font-weight:700;{circle_style}">{circle}</div>'
+            f'<div style="font-size:0.75em;white-space:nowrap;{label_style}">{label}</div>'
+            "</div>"
+        )
+
+    st.markdown(
+        f'<div style="display:flex;align-items:flex-start;padding:4px 0 24px 0;">{"".join(parts)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def status_badge(label: str, tone: str) -> str:
     """Returns an HTML pill badge. tone: green | yellow | red | gray."""
     colors = {
