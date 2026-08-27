@@ -25,8 +25,18 @@ def _build_credential() -> credentials.Certificate:
 
 
 def get_app() -> firebase_admin.App:
+    """Our own _app cache can get out of sync with firebase_admin's internal
+    app registry under Streamlit's rerun/hot-reload model -- this module can
+    be re-imported (resetting _app to None) while the underlying process (and
+    firebase_admin's own already-initialized default app) is still alive.
+    Falling back to firebase_admin.get_app() before initializing avoids a
+    spurious 'default app already exists' ValueError in that case."""
     global _app
-    if _app is None:
+    if _app is not None:
+        return _app
+    try:
+        _app = firebase_admin.get_app()
+    except ValueError:
         _app = firebase_admin.initialize_app(_build_credential())
     return _app
 
