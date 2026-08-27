@@ -63,7 +63,7 @@ st.session_state["jd_source"] = jd_source
 st.write("")
 jd_text = st.text_area(
     "Job description text (edit as needed)",
-    value=st.session_state.get("jd_text_draft", jd_text),
+    value=st.session_state.get("jd_text_draft", ""),
     height=300,
     key="jd_text_area",
 )

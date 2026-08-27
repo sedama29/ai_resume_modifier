@@ -148,16 +148,16 @@ def render_user_badge(user: dict) -> None:
                         unsafe_allow_html=True,
                     )
             with col2:
-                st.markdown(
-                    f'<div style="font-weight:600;font-size:0.88rem;color:#18181B;line-height:1.2;">{display_name}</div>'
-                    f'<div style="font-size:0.76rem;color:#71717A;">{short_email}</div>',
-                    unsafe_allow_html=True,
+                badge_html = (
+                    '<span style="background:#F1F1FB;color:#5B5FC7;border:1px solid #D6D6F5;padding:1px 7px;'
+                    'border-radius:6px;font-weight:500;font-size:0.68rem;margin-left:6px;vertical-align:middle;">'
+                    "Super User</span>"
+                    if user["role"] == "superuser"
+                    else ""
                 )
-            if user["role"] == "superuser":
                 st.markdown(
-                    '<div style="margin-top:6px;">'
-                    '<span style="background:#F1F1FB;color:#5B5FC7;border:1px solid #D6D6F5;padding:2px 8px;'
-                    'border-radius:6px;font-weight:500;font-size:0.72rem;">Super User</span></div>',
+                    f'<div style="font-weight:600;font-size:0.88rem;color:#18181B;line-height:1.2;">{display_name}{badge_html}</div>'
+                    f'<div style="font-size:0.76rem;color:#71717A;">{short_email}</div>',
                     unsafe_allow_html=True,
                 )
             if st.button("Sign out", use_container_width=True, key="sign_out_btn"):
