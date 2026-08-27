@@ -9,11 +9,25 @@ from config import FIREBASE_SERVICE_ACCOUNT_PATH
 _app: firebase_admin.App | None = None
 
 
+def _build_credential() -> credentials.Certificate:
+    """Local dev reads the service account JSON file from disk (gitignored,
+    path in .env). Streamlit Community Cloud has no access to that file, so
+    there we read the same fields from st.secrets['firebase_service_account']
+    (a TOML table pasted into the app's Advanced Settings -> Secrets box)."""
+    try:
+        import streamlit as st
+
+        if "firebase_service_account" in st.secrets:
+            return credentials.Certificate(dict(st.secrets["firebase_service_account"]))
+    except Exception:
+        pass
+    return credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_PATH)
+
+
 def get_app() -> firebase_admin.App:
     global _app
     if _app is None:
-        cred = credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_PATH)
-        _app = firebase_admin.initialize_app(cred)
+        _app = firebase_admin.initialize_app(_build_credential())
     return _app
 
 
