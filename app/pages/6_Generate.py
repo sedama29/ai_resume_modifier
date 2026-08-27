@@ -16,7 +16,6 @@ from core.renderer import render_tex
 from core.resume_model import ContentModel
 from latex.compiler import compile_tex
 
-st.set_page_config(page_title="Generate", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -43,13 +42,44 @@ if final_content_model is None:
 
 latest_version = repo.get_latest_resume_version(db, user["uid"], application_id)
 
-mode = st.radio(
-    "What do you want to do?",
-    ["Create New Resume", "Overwrite Existing Resume"],
-    disabled=latest_version is None,
-    help="Overwrite regenerates the current version's files in place. Create New always adds a new version.",
-)
-overwrite = mode == "Overwrite Existing Resume"
+with st.container(border=True):
+    st.markdown("**Your resume is ready**")
+    st.write("✓ Master format preserved")
+    st.write("✓ Job-specific customization complete")
+    st.write("✓ Changes reviewed" if f"final_content_model_{application_id}" in st.session_state else "○ Using unmodified master resume")
+
+st.write("")
+st.markdown("**What would you like to do?**")
+
+mode_key = f"generate_mode_{application_id}"
+st.session_state.setdefault(mode_key, "new")
+
+col1, col2 = st.columns(2)
+with col1:
+    with st.container(border=True):
+        st.markdown("**Create New Resume**")
+        st.caption("Keeps every prior version intact -- recommended.")
+        if st.button(
+            "Select" if st.session_state[mode_key] != "new" else "Selected ✓",
+            key="select_new", use_container_width=True,
+            type="primary" if st.session_state[mode_key] == "new" else "secondary",
+        ):
+            st.session_state[mode_key] = "new"
+            st.rerun()
+with col2:
+    with st.container(border=True):
+        st.markdown("**Overwrite Existing Resume**")
+        st.caption("Updates the current version's files in place.")
+        if st.button(
+            "Select" if st.session_state[mode_key] != "overwrite" else "Selected ✓",
+            key="select_overwrite", use_container_width=True, disabled=latest_version is None,
+            type="primary" if st.session_state[mode_key] == "overwrite" else "secondary",
+        ):
+            st.session_state[mode_key] = "overwrite"
+            st.rerun()
+
+overwrite = st.session_state[mode_key] == "overwrite"
+st.write("")
 
 if st.button("Generate", type="primary"):
     version_number = next_version_number(

@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
@@ -11,7 +12,6 @@ from app.auth import authz
 from app.state import get_db, render_user_badge, require_superuser, require_user
 from config import GROQ_INPUT_PRICE_PER_1M, GROQ_OUTPUT_PRICE_PER_1M
 
-st.set_page_config(page_title="Admin: API Usage", layout="wide")
 
 from app.styling import inject_custom_css, page_header
 inject_custom_css()
@@ -44,13 +44,50 @@ df["estimated_cost"] = (
     + df["completion_tokens"].fillna(0) / 1_000_000 * GROQ_OUTPUT_PRICE_PER_1M
 )
 
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("Requests", len(df))
-col2.metric("Input tokens", f"{int(df['prompt_tokens'].fillna(0).sum()):,}")
-col3.metric("Output tokens", f"{int(df['completion_tokens'].fillna(0).sum()):,}")
-col4.metric("Total tokens", f"{int(df['total_tokens'].fillna(0).sum()):,}")
-col5.metric("Estimated cost", f"${df['estimated_cost'].sum():.4f}")
+def _summarize(subset: pd.DataFrame) -> tuple[int, float, float]:
+    requests = len(subset)
+    tokens = float(subset["total_tokens"].fillna(0).sum())
+    cost = float(subset["estimated_cost"].sum())
+    return requests, tokens, cost
 
+
+def _fmt_tokens(n: float) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return f"{n:.0f}"
+
+
+now = datetime.now(timezone.utc)
+today_mask = df["created_at"].dt.date == now.date()
+month_mask = (df["created_at"].dt.year == now.year) & (df["created_at"].dt.month == now.month)
+
+today_req, today_tok, today_cost = _summarize(df[today_mask])
+month_req, month_tok, month_cost = _summarize(df[month_mask])
+all_req, all_tok, all_cost = _summarize(df)
+
+st.markdown("**Today**")
+c1, c2, c3 = st.columns(3)
+c1.metric("Requests", today_req)
+c2.metric("Tokens", _fmt_tokens(today_tok))
+c3.metric("Estimated cost", f"${today_cost:.2f}")
+
+st.write("")
+st.markdown("**This month**")
+c1, c2, c3 = st.columns(3)
+c1.metric("Requests", month_req)
+c2.metric("Tokens", _fmt_tokens(month_tok))
+c3.metric("Estimated cost", f"${month_cost:.2f}")
+
+st.write("")
+st.markdown("**All time**")
+c1, c2, c3 = st.columns(3)
+c1.metric("Requests", all_req)
+c2.metric("Tokens", _fmt_tokens(all_tok))
+c3.metric("Estimated cost", f"${all_cost:.2f}")
+
+st.write("")
 st.subheader("Usage by date")
 by_date = df.groupby("date").agg(
     requests=("created_at", "count"),

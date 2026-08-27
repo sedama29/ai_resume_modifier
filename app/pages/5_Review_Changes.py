@@ -12,9 +12,8 @@ from core.resume_model import Bullet, ContentModel, SkillLine
 from core.validators import validate_and_merge
 from llm.resume_rewrite import rewrite_resume
 
-st.set_page_config(page_title="Review Changes", layout="wide")
 
-from app.styling import inject_custom_css, page_header, progress_stepper
+from app.styling import inject_custom_css, page_header, progress_stepper, status_badge
 inject_custom_css()
 
 
@@ -101,41 +100,70 @@ warnings_by_ref = {}
 for w in warnings:
     warnings_by_ref.setdefault(w.ref, []).append(w)
 
-if diff.reordered_sections:
-    st.info(f"Reordered: {', '.join(diff.reordered_sections)}")
-
-if not diff.changes:
+if not diff.changes and not diff.reordered_sections:
     st.success("No content changes proposed.")
 else:
     decisions = {}  # ref -> bool accept
-    for change in diff.changes:
+
+    def render_item(change):
         item_warnings = warnings_by_ref.get(change.ref, [])
         has_fidelity_flag = any(w.kind in ("numeric_mismatch", "unverified_new_term") for w in item_warnings)
         default = not has_fidelity_flag  # numeric/new-term-flagged items default to unaccepted
-
-        if change.change_type == "added":
-            label = f"**Added** ({change.ref}): {change.new_text}"
-        elif change.change_type == "reworded":
-            label = f"**Reworded** ({change.ref})"
-        else:  # removed
-            label = f"**Remove** ({change.ref}): {change.old_text}"
+        if change.change_type == "removed":
             default = False  # default to keeping the original content
 
         with st.container(border=True):
-            st.markdown(label)
             if change.change_type == "reworded":
-                st.write("Was:", change.old_text)
-                st.write("Now:", change.new_text)
+                st.caption("Was")
+                st.write(change.old_text)
+                st.caption("Now")
+                st.write(change.new_text)
+            elif change.change_type == "added":
+                st.write(change.new_text)
+            else:
+                st.write(change.old_text)
             for w in item_warnings:
                 st.markdown(f":red[{w.message}]")
             accept_label = "Remove this bullet" if change.change_type == "removed" else "Accept this change"
             decisions[change.ref] = st.checkbox(accept_label, value=default, key=f"decision_{change.ref}")
 
+    added = [c for c in diff.changes if c.change_type == "added"]
+    reworded = [c for c in diff.changes if c.change_type == "reworded"]
+    removed = [c for c in diff.changes if c.change_type == "removed"]
+
+    if added:
+        st.markdown(f"### Added &nbsp; {status_badge(str(len(added)), 'green')}", unsafe_allow_html=True)
+        for c in added:
+            render_item(c)
+        st.write("")
+
+    if reworded:
+        st.markdown(f"### Reworded &nbsp; {status_badge(str(len(reworded)), 'gray')}", unsafe_allow_html=True)
+        for c in reworded:
+            render_item(c)
+        st.write("")
+
+    if diff.reordered_sections:
+        st.markdown("### Reordered", unsafe_allow_html=True)
+        st.markdown(
+            " ".join(status_badge(s, "gray") for s in diff.reordered_sections),
+            unsafe_allow_html=True,
+        )
+        st.write("")
+
+    if removed:
+        st.markdown(f"### Suggested to remove &nbsp; {status_badge(str(len(removed)), 'yellow')}", unsafe_allow_html=True)
+        for c in removed:
+            render_item(c)
+        st.write("")
+
     not_added = [w for w in warnings if w.kind in ("missing_source_answer", "unknown_id")]
     if not_added:
-        with st.expander("Not added (discarded automatically)"):
-            for w in not_added:
-                st.write(f"- {w.ref}: {w.message}")
+        st.markdown("### Not added", unsafe_allow_html=True)
+        st.caption("Discarded automatically -- no confirmed source, or referenced content that doesn't exist.")
+        for w in not_added:
+            st.write(f"○ {w.ref}: {w.message}")
+        st.write("")
 
     if st.button("Approve & Continue →", type="primary"):
         final = merged.model_copy(deep=True)

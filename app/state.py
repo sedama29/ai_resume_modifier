@@ -90,7 +90,13 @@ def require_user() -> dict:
         st.stop()
 
     authz.record_login(email, claims["uid"])
-    st.session_state["user"] = {"uid": claims["uid"], "email": email, "role": record["role"]}
+    st.session_state["user"] = {
+        "uid": claims["uid"],
+        "email": email,
+        "role": record["role"],
+        "name": claims.get("name"),
+        "picture": claims.get("picture"),
+    }
     st.rerun()
 
 
@@ -117,13 +123,45 @@ def sign_out() -> None:
 
 
 def render_user_badge(user: dict) -> None:
+    """Compact account card pinned to the bottom of the sidebar -- avatar
+    (Google profile photo if available, else initials), name, role, sign out.
+    Integrated into the sidebar rather than a few bare caption lines."""
+    from app.styling import initials  # local import: styling imports streamlit only, no cycle risk either way
+
     with st.sidebar:
-        st.divider()
-        st.caption(user["email"])
-        if user["role"] == "superuser":
-            st.caption("Super User")
-        if st.button("Sign out", use_container_width=True):
-            sign_out()
+        st.markdown('<div style="margin-top:20px;"></div>', unsafe_allow_html=True)
+
+        with st.container(border=True):
+            picture = user.get("picture")
+            display_name = user.get("name") or user["email"].split("@")[0]
+            short_email = user["email"] if len(user["email"]) <= 26 else user["email"][:23] + "…"
+
+            col1, col2 = st.columns([1, 4], vertical_alignment="center")
+            with col1:
+                if picture:
+                    st.image(picture, width=32)
+                else:
+                    st.markdown(
+                        f'<div style="width:32px;height:32px;border-radius:50%;background:#5B5FC7;color:#fff;'
+                        f'display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;">'
+                        f'{initials(user.get("name"), user["email"])}</div>',
+                        unsafe_allow_html=True,
+                    )
+            with col2:
+                st.markdown(
+                    f'<div style="font-weight:600;font-size:0.88rem;color:#18181B;line-height:1.2;">{display_name}</div>'
+                    f'<div style="font-size:0.76rem;color:#71717A;">{short_email}</div>',
+                    unsafe_allow_html=True,
+                )
+            if user["role"] == "superuser":
+                st.markdown(
+                    '<div style="margin-top:6px;">'
+                    '<span style="background:#F1F1FB;color:#5B5FC7;border:1px solid #D6D6F5;padding:2px 8px;'
+                    'border-radius:6px;font-weight:500;font-size:0.72rem;">Super User</span></div>',
+                    unsafe_allow_html=True,
+                )
+            if st.button("Sign out", use_container_width=True, key="sign_out_btn"):
+                sign_out()
 
 
 def get_active_application_id() -> str | None:

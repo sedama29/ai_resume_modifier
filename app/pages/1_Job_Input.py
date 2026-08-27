@@ -11,7 +11,6 @@ from jd.extract import extract_main_text
 from jd.fetch import fetch_job_description
 from llm.job_analysis import analyze_job_description
 
-st.set_page_config(page_title="Job Input", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -20,7 +19,7 @@ db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header("Job Input", "Paste a posting or link to it -- we'll analyze it before touching your resume.")
+page_header("Start a New Application", "Add a job posting and we'll evaluate the opportunity before modifying your resume.")
 progress_stepper("job_input")
 
 master_resume = repo.get_master_resume(db, user["uid"])
@@ -30,28 +29,38 @@ if master_resume is None:
         st.switch_page("Profile.py")
     st.stop()
 
-source = st.radio("How do you want to provide the job description?", ["Paste text", "Job URL"])
+st.markdown("**How would you like to provide the job?**")
+tab_paste, tab_url = st.tabs(["Paste Description", "Job Posting URL"])
 
-jd_text = st.session_state.get("jd_text_draft", "")
-jd_source = "pasted"
 job_url = None
+jd_source = st.session_state.get("jd_source", "pasted")
 
-if source == "Job URL":
-    job_url = st.text_input("Job posting URL")
+with tab_paste:
+    st.caption("Paste the full job posting text below.")
+    pasted = st.text_area("Paste text", key="paste_input", label_visibility="collapsed", height=180)
+    if pasted:
+        st.session_state["jd_text_draft"] = pasted
+        jd_source = "pasted"
+
+with tab_url:
+    st.caption("Enter a link and we'll try to extract the posting text.")
+    job_url = st.text_input("Job posting URL", key="job_url_input", label_visibility="collapsed", placeholder="https://...")
     if st.button("Fetch job description") and job_url:
         try:
             html = fetch_job_description(job_url)
             extracted = extract_main_text(html)
         except Exception as e:
-            st.error(f"Couldn't fetch that URL: {e}. Paste the job description text below instead.")
+            st.error(f"Couldn't fetch that URL: {e}. Paste the job description text in the other tab instead.")
             extracted = None
         if extracted:
             st.session_state["jd_text_draft"] = extracted
-            jd_text = extracted
+            jd_source = "url"
         else:
-            st.warning("Couldn't cleanly extract the posting text -- paste it manually below.")
-    jd_source = "url"
+            st.warning("Couldn't cleanly extract the posting text -- use the Paste tab instead.")
 
+st.session_state["jd_source"] = jd_source
+
+st.write("")
 jd_text = st.text_area(
     "Job description text (edit as needed)",
     value=st.session_state.get("jd_text_draft", jd_text),
