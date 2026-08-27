@@ -33,28 +33,32 @@ STATUS_TONE = {
     "analyzed": "gray", "questions_pending": "gray", "not_pursuing": "red", "draft": "gray",
 }
 
-header = st.columns([3, 3, 2, 2])
+header = st.columns([2.6, 2.6, 1.6, 1.8, 1.8])
 header[0].caption("COMPANY")
 header[1].caption("POSITION")
 header[2].caption("DATE")
-header[3].caption("STATUS")
+header[3].caption("RESUME VERSION")
+header[4].caption("STATUS")
 
 for app in applications:
     label = f"{app['company'] or 'Unknown'} — {app['job_title'] or 'Unknown'}"
     if search and search.lower() not in label.lower():
         continue
 
-    row = st.columns([3, 3, 2, 2], vertical_alignment="center")
+    versions = repo.list_resume_versions(db, user["uid"], app["id"])
+    latest_version_label = versions[-1]["name"] if versions else "—"
+
+    row = st.columns([2.6, 2.6, 1.6, 1.8, 1.8], vertical_alignment="center")
     row[0].markdown(f"**{app['company'] or 'Unknown'}**")
     row[1].write(app["job_title"] or "Unknown")
     row[2].write(str(app["created_at"])[:10])
+    row[3].write(latest_version_label)
     tone = STATUS_TONE.get(app["status"], "gray")
-    row[3].markdown(status_badge(app["status"].replace("_", " ").title(), tone), unsafe_allow_html=True)
+    row[4].markdown(status_badge(app["status"].replace("_", " ").title(), tone), unsafe_allow_html=True)
 
     with st.expander("Details"):
         eligibility = repo.get_latest_eligibility_result(db, user["uid"], app["id"])
         match = repo.get_latest_match_result(db, user["uid"], app["id"])
-        versions = repo.list_resume_versions(db, user["uid"], app["id"])
 
         if app["job_url"]:
             st.write(f"[Job posting]({app['job_url']})")

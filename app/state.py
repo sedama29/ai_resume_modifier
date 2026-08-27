@@ -134,30 +134,27 @@ def render_user_badge(user: dict) -> None:
         with st.container(border=True):
             picture = user.get("picture")
             display_name = user.get("name") or user["email"].split("@")[0]
-            short_email = user["email"] if len(user["email"]) <= 26 else user["email"][:23] + "…"
 
             col1, col2 = st.columns([1, 4], vertical_alignment="center")
             with col1:
                 if picture:
-                    st.image(picture, width=32)
+                    st.image(picture, width=30)
                 else:
                     st.markdown(
-                        f'<div style="width:32px;height:32px;border-radius:50%;background:#5B5FC7;color:#fff;'
-                        f'display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;">'
+                        f'<div style="width:30px;height:30px;border-radius:50%;background:#5B5FC7;color:#fff;'
+                        f'display:flex;align-items:center;justify-content:center;font-size:0.76rem;font-weight:600;">'
                         f'{initials(user.get("name"), user["email"])}</div>',
                         unsafe_allow_html=True,
                     )
             with col2:
-                badge_html = (
-                    '<span style="background:#F1F1FB;color:#5B5FC7;border:1px solid #D6D6F5;padding:1px 7px;'
-                    'border-radius:6px;font-weight:500;font-size:0.68rem;margin-left:6px;vertical-align:middle;">'
-                    "Super User</span>"
+                role_html = (
+                    '<div style="font-size:0.72rem;color:#5B5FC7;font-weight:500;margin-top:1px;">Super User</div>'
                     if user["role"] == "superuser"
                     else ""
                 )
                 st.markdown(
-                    f'<div style="font-weight:600;font-size:0.88rem;color:#18181B;line-height:1.2;">{display_name}{badge_html}</div>'
-                    f'<div style="font-size:0.76rem;color:#71717A;">{short_email}</div>',
+                    f'<div style="font-weight:600;font-size:0.85rem;color:#18181B;line-height:1.2;" title="{user["email"]}">{display_name}</div>'
+                    f"{role_html}",
                     unsafe_allow_html=True,
                 )
             if st.button("Sign out", use_container_width=True, key="sign_out_btn"):

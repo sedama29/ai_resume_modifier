@@ -13,17 +13,14 @@ from config import MASTER_RESUME_PATH
 from core.parser import extract_header_fields, parse_master_tex_from_string
 
 
-from app.styling import inject_custom_css, page_header
+from app.styling import initials, inject_custom_css, page_header
 inject_custom_css()
 
 db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header(
-    "Your resume profile",
-    "Manage your master resume and candidate information -- used for every application you tailor.",
-)
+page_header("Profile", "Your candidate information and master resume.")
 
 
 def _handle_upload(tex_text: str, profile: dict) -> None:
@@ -52,6 +49,9 @@ def _handle_upload(tex_text: str, profile: dict) -> None:
         years_experience=profile.get("years_experience"),
         education_summary=profile.get("education_summary"),
         visa_status_text=profile.get("visa_status_text"),
+        professional_title=profile.get("professional_title"),
+        linkedin=profile.get("linkedin"),
+        website=profile.get("website"),
     )
     st.rerun()
 
@@ -76,72 +76,148 @@ if setup_complete:
         st.switch_page("pages/1_Job_Input.py")
     st.write("")
 
+# --- Candidate Profile -------------------------------------------------------
+st.subheader("Candidate Profile")
+st.session_state.setdefault("profile_editing", False)
+editing = st.session_state["profile_editing"] or not profile.get("name")
+
+if profile.get("name") and not editing:
+    with st.container(border=True):
+        col_avatar, col_info = st.columns([1, 7], vertical_alignment="top")
+        with col_avatar:
+            picture = user.get("picture")
+            if picture:
+                st.image(picture, width=56)
+            else:
+                st.markdown(
+                    f'<div style="width:56px;height:56px;border-radius:50%;background:#5B5FC7;color:#fff;'
+                    f'display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:600;">'
+                    f'{initials(profile.get("name"), user["email"])}</div>',
+                    unsafe_allow_html=True,
+                )
+        with col_info:
+            title_html = (
+                f'<div style="color:var(--muted);font-size:0.9rem;margin-top:2px;">{profile["professional_title"]}</div>'
+                if profile.get("professional_title") else ""
+            )
+            st.markdown(
+                f'<div style="font-size:1.15rem;font-weight:650;color:var(--ink);">{profile["name"]}</div>{title_html}',
+                unsafe_allow_html=True,
+            )
+            contact_bits = [b for b in [profile.get("email"), profile.get("location")] if b]
+            if contact_bits:
+                st.markdown(
+                    f'<div style="color:var(--muted);font-size:0.88rem;margin-top:10px;">{"  ·  ".join(contact_bits)}</div>',
+                    unsafe_allow_html=True,
+                )
+            links = []
+            if profile.get("linkedin"):
+                links.append(f'<a href="{profile["linkedin"]}" target="_blank">LinkedIn</a>')
+            if profile.get("github"):
+                links.append(f'<a href="{profile["github"]}" target="_blank">GitHub</a>')
+            if profile.get("website"):
+                links.append(f'<a href="{profile["website"]}" target="_blank">Portfolio</a>')
+            if links:
+                st.markdown(
+                    f'<div style="font-size:0.88rem;margin-top:4px;">{"  ·  ".join(links)}</div>',
+                    unsafe_allow_html=True,
+                )
+        _, col_btn = st.columns([5, 1.4])
+        with col_btn:
+            if st.button("Edit Profile", use_container_width=True, key="edit_profile_btn"):
+                st.session_state["profile_editing"] = True
+                st.rerun()
+else:
+    with st.container(border=True):
+        with st.form("profile_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                name = st.text_input("Full Name", value=profile.get("name") or "")
+                email = st.text_input("Email", value=profile.get("email") or user["email"])
+                location = st.text_input("Location", value=profile.get("location") or "")
+                linkedin = st.text_input("LinkedIn", value=profile.get("linkedin") or "", placeholder="https://linkedin.com/in/...")
+            with col2:
+                professional_title = st.text_input("Professional Title", value=profile.get("professional_title") or "")
+                phone = st.text_input("Phone", value=profile.get("phone") or "")
+                github = st.text_input("GitHub", value=profile.get("github") or "")
+                website = st.text_input("Portfolio / Website", value=profile.get("website") or "")
+
+            st.markdown("**Additional details**")
+            years_experience = st.number_input(
+                "Approximate years of professional experience", min_value=0.0, step=0.5,
+                value=float(profile.get("years_experience") or 0),
+            )
+            education_summary = st.text_area(
+                "Education summary", value=profile.get("education_summary") or "",
+                placeholder="e.g. M.S. Computer Science, Texas A&M University-Corpus Christi",
+            )
+            visa_status_text = st.text_area(
+                "Work authorization status", value=profile.get("visa_status_text") or "",
+                placeholder="e.g. H-1B, sponsored by a nonprofit research institute",
+            )
+
+            col_cancel, col_save = st.columns(2)
+            cancel = col_cancel.form_submit_button("Cancel", use_container_width=True, disabled=not profile.get("name"))
+            save = col_save.form_submit_button("Save Profile", type="primary", use_container_width=True)
+
+            if save:
+                repo.upsert_candidate_profile(
+                    db, user["uid"], name=name, phone=phone, email=email, github=github, location=location,
+                    years_experience=years_experience, education_summary=education_summary,
+                    visa_status_text=visa_status_text, professional_title=professional_title,
+                    linkedin=linkedin, website=website,
+                )
+                st.session_state["profile_editing"] = False
+                st.success("Profile saved.")
+                st.rerun()
+            if cancel:
+                st.session_state["profile_editing"] = False
+                st.rerun()
+
+st.write("")
+
+# --- Master Resume -----------------------------------------------------------
 st.subheader("Master Resume")
+
 if master_resume:
     from core.resume_model import ContentModel
 
+    cm = ContentModel.model_validate(master_resume["content_model"])
+
+    @st.dialog("Resume Preview")
+    def _view_resume_dialog(cm=cm) -> None:
+        st.write("**Summary**")
+        st.write(cm.summary.text)
+        st.write("**Experience**")
+        for e in cm.experience:
+            st.write(f"- {e.org_label} ({len(e.bullets)} bullets)")
+        st.write("**Skills**")
+        for s in cm.skills:
+            st.write(f"- {s.text}")
+
+    @st.dialog("Replace Master Resume")
+    def _replace_resume_dialog(profile=profile) -> None:
+        render_upload_form(profile)
+
     with st.container(border=True):
-        st.markdown(f"**{Path(master_resume['source_storage_path']).name}**")
-        st.caption(f"Last updated: {str(master_resume.get('uploaded_at', ''))[:10]}")
-        cm = ContentModel.model_validate(master_resume["content_model"])
-        st.caption(f"{len(cm.experience)} experience entries · {len(cm.skills)} skill lines")
-        with st.expander("View parsed content"):
-            st.write("**Summary**")
-            st.write(cm.summary.text)
-            st.write("**Experience**")
-            for e in cm.experience:
-                st.write(f"- {e.org_label} ({len(e.bullets)} bullets)")
-            st.write("**Skills**")
-            for s in cm.skills:
-                st.write(f"- {s.text}")
-        with st.expander("Replace master resume"):
-            render_upload_form(profile)
+        col1, col2 = st.columns([3, 2], vertical_alignment="center")
+        with col1:
+            st.markdown(f"**{Path(master_resume['source_storage_path']).name}**")
+            st.caption(f"LaTeX source · {len(cm.experience)} experience entries · {len(cm.skills)} skill lines")
+        with col2:
+            st.caption(f"Last updated: {str(master_resume.get('uploaded_at', ''))[:10]}")
+        st.write("")
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button("View Resume", use_container_width=True):
+                _view_resume_dialog()
+        with b2:
+            if st.button("Replace Resume", use_container_width=True):
+                _replace_resume_dialog()
 else:
     st.info("Upload your master resume .tex to get started.")
     with st.container(border=True):
         render_upload_form(profile)
-
-st.write("")
-st.subheader("Candidate Information")
-st.caption("Used to give the LLM accurate context for eligibility and matching.")
-
-if profile.get("name"):
-    with st.container(border=True):
-        c1, c2 = st.columns(2)
-        c1.write(f"**Name**  \n{profile.get('name') or '—'}")
-        c1.write(f"**Location**  \n{profile.get('location') or '—'}")
-        c1.write(f"**Experience**  \n{profile.get('years_experience') or 0} years")
-        c2.write(f"**Email**  \n{profile.get('email') or '—'}")
-        c2.write(f"**GitHub**  \n{profile.get('github') or '—'}")
-        c2.write(f"**Work authorization**  \n{profile.get('visa_status_text') or '—'}")
-
-with (st.expander("Edit candidate information") if profile.get("name") else st.container()):
-    with st.form("profile_form"):
-        name = st.text_input("Name", value=profile.get("name") or "")
-        phone = st.text_input("Phone", value=profile.get("phone") or "")
-        email = st.text_input("Email", value=profile.get("email") or user["email"])
-        github = st.text_input("GitHub", value=profile.get("github") or "")
-        location = st.text_input("Location", value=profile.get("location") or "")
-        years_experience = st.number_input(
-            "Approximate years of professional experience", min_value=0.0, step=0.5,
-            value=float(profile.get("years_experience") or 0),
-        )
-        education_summary = st.text_area(
-            "Education summary", value=profile.get("education_summary") or "",
-            placeholder="e.g. M.S. Computer Science, Texas A&M University-Corpus Christi",
-        )
-        visa_status_text = st.text_area(
-            "Work authorization status", value=profile.get("visa_status_text") or "",
-            placeholder="e.g. H-1B, sponsored by a nonprofit research institute",
-        )
-        if st.form_submit_button("Save profile", type="primary"):
-            repo.upsert_candidate_profile(
-                db, user["uid"], name=name, phone=phone, email=email, github=github, location=location,
-                years_experience=years_experience, education_summary=education_summary,
-                visa_status_text=visa_status_text,
-            )
-            st.success("Profile saved.")
-            st.rerun()
 
 if not setup_complete:
     st.write("")

@@ -58,7 +58,7 @@ col1, col2 = st.columns(2)
 with col1:
     with st.container(border=True):
         st.markdown("**Create New Resume**")
-        st.caption("Keeps every prior version intact -- recommended.")
+        st.caption("Recommended — keeps master intact.")
         if st.button(
             "Select" if st.session_state[mode_key] != "new" else "Selected ✓",
             key="select_new", use_container_width=True,
@@ -129,7 +129,7 @@ if st.button("Generate", type="primary"):
             st.code(result.log_text or "(no log captured)")
         st.download_button("Download .tex (fix manually)", tex_content, file_name=f"{name}.tex", mime="text/plain")
 
-st.divider()
+st.write("")
 versions = repo.list_resume_versions(db, user["uid"], application_id)
 if versions:
     st.subheader("Versions for this application")

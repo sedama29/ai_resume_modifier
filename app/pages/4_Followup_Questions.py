@@ -72,7 +72,7 @@ if questions:
     with st.container(border=True):
         st.markdown(f"**{q['question_text']}**")
         level = st.radio(
-            "Your experience level", ["Yes", "Limited exposure", "No", "Not sure"],
+            "Your experience level", ["Yes", "No", "Limited exposure", "Not sure"],
             key=f"level_{q['question_id']}_{idx}", label_visibility="collapsed",
         )
         detail = None

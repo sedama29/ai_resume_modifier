@@ -71,14 +71,14 @@ with st.container(border=True):
 st.write("")
 col1, col2 = st.columns(2)
 with col1:
-    st.markdown("**Present on your resume**")
+    st.markdown("**Strong Matches**")
     if present:
         for p in present:
             st.write(f"✓ {p['skill']}" + (f" — _{p.get('evidence', '')}_" if p.get("evidence") else ""))
     else:
         st.caption("None identified.")
 with col2:
-    st.markdown("**Missing**")
+    st.markdown("**Missing / Needs Confirmation**")
     if missing:
         for m in missing:
             st.write(f"○ {m['skill']} ({m.get('importance', 'unspecified')})")
@@ -87,9 +87,9 @@ with col2:
 
 if implied:
     st.write("")
-    st.markdown("**Potentially implied — needs your confirmation**")
+    st.markdown("**Potential Concerns — needs your confirmation**")
     for i in implied:
-        st.write(f"? {i['skill']}: _{i.get('reasoning', '')}_")
+        st.write(f"! {i['skill']}: _{i.get('reasoning', '')}_")
 
 st.write("")
 if st.button("Continue to Follow-up Questions →", type="primary"):

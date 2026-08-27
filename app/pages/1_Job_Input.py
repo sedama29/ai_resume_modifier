@@ -37,7 +37,7 @@ jd_source = st.session_state.get("jd_source", "pasted")
 
 with tab_paste:
     st.caption("Paste the full job posting text below.")
-    pasted = st.text_area("Paste text", key="paste_input", label_visibility="collapsed", height=180)
+    pasted = st.text_area("Paste text", key="paste_input", label_visibility="collapsed", height=130)
     if pasted:
         st.session_state["jd_text_draft"] = pasted
         jd_source = "pasted"
@@ -64,7 +64,7 @@ st.write("")
 jd_text = st.text_area(
     "Job description text (edit as needed)",
     value=st.session_state.get("jd_text_draft", ""),
-    height=300,
+    height=170,
     key="jd_text_area",
 )
 
