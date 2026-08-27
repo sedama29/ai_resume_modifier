@@ -10,6 +10,9 @@ from app.state import get_db, render_user_badge, require_user, set_active_applic
 
 st.set_page_config(page_title="Application History", page_icon="📚", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()
 user = require_user()
 render_user_badge(user)

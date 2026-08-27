@@ -13,6 +13,9 @@ from config import GROQ_INPUT_PRICE_PER_1M, GROQ_OUTPUT_PRICE_PER_1M
 
 st.set_page_config(page_title="Admin: API Usage", page_icon="📈", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()
 user = require_user()
 require_superuser(user)

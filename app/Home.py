@@ -13,6 +13,9 @@ from core.parser import extract_header_fields, parse_master_tex
 
 st.set_page_config(page_title="AI Resume Modifier", page_icon="📄", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()
 user = require_user()
 render_user_badge(user)

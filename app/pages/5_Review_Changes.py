@@ -15,6 +15,9 @@ from llm.resume_rewrite import rewrite_resume
 
 st.set_page_config(page_title="Review Changes", page_icon="🔎", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 
 def _split_ref(ref: str):
     entry_id, item_id = ref.split(":", 1)

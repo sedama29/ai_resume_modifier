@@ -17,6 +17,9 @@ from latex.compiler import compile_tex
 
 st.set_page_config(page_title="Generate", page_icon="📄", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()
 user = require_user()
 render_user_badge(user)

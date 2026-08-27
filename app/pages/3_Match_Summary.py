@@ -13,6 +13,9 @@ from llm.skill_match import match_resume_to_job
 
 st.set_page_config(page_title="Match Summary", page_icon="📊", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()
 user = require_user()
 render_user_badge(user)

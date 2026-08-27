@@ -20,6 +20,21 @@ def get_current_user() -> dict | None:
     return st.session_state.get("user")
 
 
+_HERO_HTML = """
+<div style="text-align:center; padding: 64px 0 12px 0;">
+  <div style="font-size: 40px; margin-bottom: 8px;">📄✨</div>
+  <div style="font-size: 2.4em; font-weight: 800; letter-spacing: -0.03em;
+              background: linear-gradient(135deg, #2563EB 0%, #4F46E5 60%, #7C3AED 100%);
+              -webkit-background-clip: text; background-clip: text; color: transparent;">
+    AI Resume Modifier
+  </div>
+  <div style="color: #64748B; font-size: 1.05em; margin-top: 6px;">
+    Tailor your resume to any job — without ever inventing experience.
+  </div>
+</div>
+"""
+
+
 def require_user() -> dict:
     """Auth gate -- call at the top of every page. Blocks (st.stop()) until a
     signed-in AND authorized user is established in session_state."""
@@ -27,19 +42,31 @@ def require_user() -> dict:
     if user is not None:
         return user
 
-    st.title("AI Resume Modifier")
-    result = firebase_login_widget(key="firebase_login")
+    st.markdown(_HERO_HTML, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.1, 1])
+    with col2:
+        result = firebase_login_widget(key="firebase_login")
 
     if result is None:
-        st.info("Checking session...")
+        with col2:
+            st.markdown(
+                "<div style='text-align:center;color:#94A3B8;font-size:0.9em;'>Checking session…</div>",
+                unsafe_allow_html=True,
+            )
         st.stop()
 
     if result["status"] == "error":
-        st.error(result["message"])
+        with col2:
+            st.error(result["message"])
         st.stop()
 
     if result["status"] == "signed_out":
-        st.write("Please sign in with your authorized Google account to continue.")
+        with col2:
+            st.markdown(
+                "<div style='text-align:center;color:#64748B;'>"
+                "Sign in with your authorized Google account to continue.</div>",
+                unsafe_allow_html=True,
+            )
         st.stop()
 
     # status == "signed_in"

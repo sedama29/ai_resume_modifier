@@ -11,6 +11,9 @@ from llm.followup_questions import generate_followup_questions
 
 st.set_page_config(page_title="Follow-up Questions", page_icon="❓", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()
 user = require_user()
 render_user_badge(user)

@@ -10,6 +10,9 @@ from app.state import get_db, render_user_badge, require_superuser, require_user
 
 st.set_page_config(page_title="Admin: Users", page_icon="🔐", layout="wide")
 
+from app.styling import inject_custom_css
+inject_custom_css()
+
 conn = get_db()  # unused directly here, but keeps the require_user() page convention consistent
 user = require_user()
 require_superuser(user)
