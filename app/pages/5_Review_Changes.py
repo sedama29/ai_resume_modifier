@@ -12,7 +12,7 @@ from core.resume_model import Bullet, ContentModel, SkillLine
 from core.validators import validate_and_merge
 from llm.resume_rewrite import rewrite_resume
 
-st.set_page_config(page_title="Review Changes", page_icon="🔎", layout="wide")
+st.set_page_config(page_title="Review Changes", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -62,7 +62,7 @@ def _restore_item(cm: ContentModel, ref: str, original_item):
 db = get_db()
 user = require_user()
 render_user_badge(user)
-page_header("🔎", "Review Changes")
+page_header("Review Changes")
 progress_stepper("review")
 
 application_id = require_active_application_id(db, user["uid"])
@@ -114,11 +114,11 @@ else:
         default = not has_fidelity_flag  # numeric/new-term-flagged items default to unaccepted
 
         if change.change_type == "added":
-            label = f"➕ **Added** ({change.ref}): {change.new_text}"
+            label = f"**Added** ({change.ref}): {change.new_text}"
         elif change.change_type == "reworded":
-            label = f"✏️ **Reworded** ({change.ref})"
+            label = f"**Reworded** ({change.ref})"
         else:  # removed
-            label = f"🗑️ **Remove** ({change.ref}): {change.old_text}"
+            label = f"**Remove** ({change.ref}): {change.old_text}"
             default = False  # default to keeping the original content
 
         with st.container(border=True):
@@ -127,7 +127,7 @@ else:
                 st.write("Was:", change.old_text)
                 st.write("Now:", change.new_text)
             for w in item_warnings:
-                st.markdown(f":red[⚠ {w.message}]")
+                st.markdown(f":red[{w.message}]")
             accept_label = "Remove this bullet" if change.change_type == "removed" else "Accept this change"
             decisions[change.ref] = st.checkbox(accept_label, value=default, key=f"decision_{change.ref}")
 

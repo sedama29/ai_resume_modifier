@@ -8,9 +8,9 @@ import streamlit as st
 from app.auth import authz
 from app.state import get_db, render_user_badge, require_superuser, require_user
 
-st.set_page_config(page_title="Admin: Users", page_icon="🔐", layout="wide")
+st.set_page_config(page_title="Admin: Users", layout="wide")
 
-from app.styling import inject_custom_css, page_header
+from app.styling import inject_custom_css, page_header, status_badge
 inject_custom_css()
 
 db = get_db()  # unused directly here, but keeps the require_user() page convention consistent
@@ -18,7 +18,7 @@ user = require_user()
 require_superuser(user)
 render_user_badge(user)
 
-page_header("🔐", "Admin: User Management", "Changes take effect immediately -- authorization is re-checked from Firestore on every page load.")
+page_header("User Management", "Changes take effect immediately -- authorization is re-checked from Firestore on every page load.")
 
 users = sorted(authz.list_users(), key=lambda u: u.get("email", ""))
 
@@ -30,7 +30,10 @@ for u in users:
         cols = st.columns([3, 1, 1, 2])
         cols[0].write(f"**{u['email']}**" + (" (you)" if u["email"] == user["email"] else ""))
         cols[1].write(u.get("role", "user"))
-        cols[2].write("🟢 active" if u.get("active") else "🔴 inactive")
+        cols[2].markdown(
+            status_badge("Active", "green") if u.get("active") else status_badge("Inactive", "gray"),
+            unsafe_allow_html=True,
+        )
         cols[3].write(f"added by {u.get('added_by', '?')} on {u.get('added_at', '?')[:10]}")
 
         if u["email"] == user["email"]:

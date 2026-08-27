@@ -9,7 +9,7 @@ import db.repository as repo
 from app.auth import storage_client
 from app.state import get_db, render_user_badge, require_user, set_active_application_id
 
-st.set_page_config(page_title="Application History", page_icon="📚", layout="wide")
+st.set_page_config(page_title="Application History", layout="wide")
 
 from app.styling import inject_custom_css, page_header
 inject_custom_css()
@@ -18,7 +18,7 @@ db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header("📚", "Application History")
+page_header("Application History", "Every job you’ve analyzed, with the resume versions you generated.")
 
 applications = repo.list_job_applications(db, user["uid"])
 
@@ -49,8 +49,8 @@ for app in applications:
         if versions:
             st.write("**Resume versions:**")
             for v in versions:
-                compiled = "✅" if v["compile_success"] else "❌" if v["compile_success"] is not None else "—"
-                st.write(f"- {v['name']} {compiled}")
+                compiled = "compiled" if v["compile_success"] else "failed" if v["compile_success"] is not None else "not generated"
+                st.write(f"- {v['name']} — {compiled}")
                 if v["pdf_storage_path"] and storage_client.blob_exists(v["pdf_storage_path"]):
                     st.download_button(
                         f"Download {v['name']}.pdf", storage_client.download_bytes(v["pdf_storage_path"]),

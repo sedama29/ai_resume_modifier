@@ -16,7 +16,7 @@ from core.renderer import render_tex
 from core.resume_model import ContentModel
 from latex.compiler import compile_tex
 
-st.set_page_config(page_title="Generate", page_icon="📄", layout="wide")
+st.set_page_config(page_title="Generate", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -25,7 +25,7 @@ db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header("📄", "Generate Resume")
+page_header("Generate Resume")
 progress_stepper("generate")
 
 application_id = require_active_application_id(db, user["uid"])
@@ -104,5 +104,5 @@ versions = repo.list_resume_versions(db, user["uid"], application_id)
 if versions:
     st.subheader("Versions for this application")
     for v in versions:
-        status = "✅ compiled" if v["compile_success"] else ("❌ failed" if v["compile_success"] is not None else "not yet generated")
+        status = "compiled" if v["compile_success"] else ("failed" if v["compile_success"] is not None else "not yet generated")
         st.write(f"- **{v['name']}** ({status})")

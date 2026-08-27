@@ -17,14 +17,11 @@ def get_current_user() -> dict | None:
 
 
 _HERO_HTML = """
-<div style="text-align:center; padding: 64px 0 12px 0;">
-  <div style="font-size: 40px; margin-bottom: 8px;">📄✨</div>
-  <div style="font-size: 2.4em; font-weight: 800; letter-spacing: -0.03em;
-              background: linear-gradient(135deg, #2563EB 0%, #4F46E5 60%, #7C3AED 100%);
-              -webkit-background-clip: text; background-clip: text; color: transparent;">
+<div style="text-align:center; padding: 72px 0 20px 0;">
+  <div style="font-size: 2rem; font-weight: 650; letter-spacing: -0.03em; color: #0B1220;">
     AI Resume Modifier
   </div>
-  <div style="color: #64748B; font-size: 1.05em; margin-top: 6px;">
+  <div style="color: #667085; font-size: 1rem; margin-top: 8px;">
     Tailor your resume to any job — without ever inventing experience.
   </div>
 </div>
@@ -121,10 +118,11 @@ def sign_out() -> None:
 
 def render_user_badge(user: dict) -> None:
     with st.sidebar:
-        st.caption(f"Signed in as {user['email']}")
+        st.divider()
+        st.caption(user["email"])
         if user["role"] == "superuser":
-            st.caption("Role: Super User")
-        if st.button("Sign out"):
+            st.caption("Super User")
+        if st.button("Sign out", use_container_width=True):
             sign_out()
 
 

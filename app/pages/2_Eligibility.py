@@ -10,7 +10,7 @@ from app.state import get_db, render_user_badge, require_active_application_id, 
 from app.styling import status_badge
 from llm.eligibility import check_eligibility
 
-st.set_page_config(page_title="Eligibility", page_icon="🚦", layout="wide")
+st.set_page_config(page_title="Eligibility", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -19,7 +19,7 @@ db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header("🚦", "Eligibility Check")
+page_header("Eligibility Check")
 progress_stepper("eligibility")
 
 application_id = require_active_application_id(db, user["uid"])
@@ -46,11 +46,11 @@ if eligibility is None or st.button("Re-run eligibility check"):
     repo.update_job_application_status(db, user["uid"], application_id, "eligibility_checked")
 
 RECOMMENDATION_DISPLAY = {
-    "strong_fit": ("green", "🟢 Likely Eligible — Strong Fit"),
-    "proceed": ("green", "🟢 Likely Eligible"),
-    "proceed_with_caution": ("yellow", "🟡 Potential Issues"),
-    "do_not_apply": ("red", "🔴 Likely Not Eligible"),
-    "insufficient_information": ("yellow", "🟡 Insufficient Information"),
+    "strong_fit": ("green", "Likely eligible — strong fit"),
+    "proceed": ("green", "Likely eligible"),
+    "proceed_with_caution": ("yellow", "Potential issues"),
+    "do_not_apply": ("red", "Likely not eligible"),
+    "insufficient_information": ("yellow", "Insufficient information"),
 }
 tone, label = RECOMMENDATION_DISPLAY.get(eligibility["overall_recommendation"], ("gray", "Unclear"))
 
@@ -64,12 +64,12 @@ with st.container(border=True):
     st.write("**Education match:**", eligibility["education_match"])
 
 WORK_AUTH_DISPLAY = {
-    "explicitly_compatible": ("green", "🟢 Employer indicates sponsorship/work authorization is compatible."),
-    "potentially_compatible": ("yellow", "🟡 No explicit restriction found — verify the employer's sponsorship policy."),
-    "potential_issue": ("yellow", "🟡 Posting requires authorization without sponsorship — potential H-1B issue."),
-    "explicit_restriction": ("red", "🔴 Posting explicitly restricts eligibility (e.g. citizenship/PR required, or sponsorship unavailable)."),
-    "not_mentioned": ("gray", "⚪ Work authorization not mentioned in the posting."),
-    "needs_verification": ("yellow", "🟡 Ambiguous or contradictory language — needs verification."),
+    "explicitly_compatible": ("green", "Employer indicates sponsorship/work authorization is compatible."),
+    "potentially_compatible": ("yellow", "No explicit restriction found — verify the employer's sponsorship policy."),
+    "potential_issue": ("yellow", "Posting requires authorization without sponsorship — potential H-1B issue."),
+    "explicit_restriction": ("red", "Posting explicitly restricts eligibility (e.g. citizenship/PR required, or sponsorship unavailable)."),
+    "not_mentioned": ("gray", "Work authorization not mentioned in the posting."),
+    "needs_verification": ("yellow", "Ambiguous or contradictory language — needs verification."),
 }
 wa_tone, wa_label = WORK_AUTH_DISPLAY.get(eligibility["work_auth_category"], ("gray", eligibility["work_auth_category"]))
 st.write("")

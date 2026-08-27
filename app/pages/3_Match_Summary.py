@@ -10,7 +10,7 @@ from app.state import get_db, render_user_badge, require_active_application_id, 
 from core.resume_model import ContentModel
 from llm.skill_match import match_resume_to_job
 
-st.set_page_config(page_title="Match Summary", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Match Summary", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -19,7 +19,7 @@ db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header("📊", "Match Summary")
+page_header("Match Summary")
 progress_stepper("match")
 
 application_id = require_active_application_id(db, user["uid"])
@@ -54,16 +54,16 @@ st.caption("This score is only an estimate.")
 
 col1, col2 = st.columns(2)
 with col1:
-    st.write("**✅ Present on your resume**")
+    st.write("**Present on your resume**")
     for p in present:
         st.write(f"- {p['skill']}" + (f" — _{p.get('evidence', '')}_" if p.get("evidence") else ""))
 with col2:
-    st.write("**❌ Missing**")
+    st.write("**Missing**")
     for m in missing:
         st.write(f"- {m['skill']} ({m.get('importance', 'unspecified')})")
 
 if implied:
-    st.write("**❓ Potentially implied — needs your confirmation**")
+    st.write("**Potentially implied — needs your confirmation**")
     for i in implied:
         st.write(f"- {i['skill']}: _{i.get('reasoning', '')}_")
 

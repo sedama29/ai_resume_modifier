@@ -12,7 +12,7 @@ from app.state import get_db, render_user_badge, require_user
 from config import MASTER_RESUME_PATH
 from core.parser import extract_header_fields, parse_master_tex_from_string
 
-st.set_page_config(page_title="AI Resume Modifier", page_icon="📄", layout="wide")
+st.set_page_config(page_title="Profile · AI Resume Modifier", layout="wide")
 
 from app.styling import inject_custom_css, page_header
 inject_custom_css()
@@ -22,9 +22,9 @@ user = require_user()
 render_user_badge(user)
 
 page_header(
-    "📄", "AI Resume Modifier",
-    "Job description → Eligibility check → Experience questions → Resume "
-    "customization → Review → PDF → Application history.",
+    "Profile",
+    "Your master resume and candidate details. These are used for every "
+    "application you tailor.",
 )
 
 
@@ -88,7 +88,7 @@ def render_setup_section(master_resume, profile):
     else:
         st.info("Upload your master resume .tex to get started.")
 
-    st.subheader("Candidate Profile")
+    st.subheader("Candidate Details")
     st.caption("Used to give the LLM accurate context for eligibility and matching.")
 
     with st.form("profile_form"):
@@ -125,18 +125,14 @@ profile = repo.get_candidate_profile(db, user["uid"]) or {}
 setup_complete = master_resume is not None and bool(profile.get("name"))
 
 if setup_complete:
-    st.success("Setup complete -- ready to start a new application.")
-    if st.button("Go to Job Input →", type="primary"):
+    if st.button("Start a new application", type="primary"):
         st.switch_page("pages/1_Job_Input.py")
 
-    with st.expander("⚙️ Master Resume & Candidate Profile (edit)"):
+    with st.expander("Master resume and candidate details"):
         master_resume = render_setup_section(master_resume, profile)
-
-    st.divider()
-    st.caption("Application history and past resume versions are on the Application History page.")
 else:
-    st.info("One-time setup: upload your master resume and fill in your profile below. You can edit these anytime later.")
+    st.info("Upload your master resume and fill in your details to get started. You can edit both anytime.")
     master_resume = render_setup_section(master_resume, profile)
     st.divider()
-    if st.button("Go to Job Input →", type="primary", disabled=master_resume is None):
+    if st.button("Start a new application", type="primary", disabled=master_resume is None):
         st.switch_page("pages/1_Job_Input.py")

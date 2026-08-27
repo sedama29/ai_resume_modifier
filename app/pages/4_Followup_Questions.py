@@ -9,7 +9,7 @@ import db.repository as repo
 from app.state import get_db, render_user_badge, require_active_application_id, require_user
 from llm.followup_questions import generate_followup_questions
 
-st.set_page_config(page_title="Follow-up Questions", page_icon="❓", layout="wide")
+st.set_page_config(page_title="Follow-up Questions", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -19,7 +19,7 @@ user = require_user()
 render_user_badge(user)
 
 page_header(
-    "❓", "Follow-up Questions",
+    "Follow-up Questions",
     "Your resume may not mention every technology you've actually used -- answer honestly, "
     "only confirmed 'Yes' answers can ever be added.",
 )

@@ -11,7 +11,7 @@ from app.auth import authz
 from app.state import get_db, render_user_badge, require_superuser, require_user
 from config import GROQ_INPUT_PRICE_PER_1M, GROQ_OUTPUT_PRICE_PER_1M
 
-st.set_page_config(page_title="Admin: API Usage", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Admin: API Usage", layout="wide")
 
 from app.styling import inject_custom_css, page_header
 inject_custom_css()
@@ -22,7 +22,7 @@ require_superuser(user)
 render_user_badge(user)
 
 page_header(
-    "📈", "Admin: Groq API Usage",
+    "Groq API Usage",
     f"Estimated cost uses ${GROQ_INPUT_PRICE_PER_1M}/1M input + ${GROQ_OUTPUT_PRICE_PER_1M}/1M output tokens "
     "for openai/gpt-oss-120b -- verify against console.groq.com/docs/models if this matters precisely.",
 )

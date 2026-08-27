@@ -11,7 +11,7 @@ from jd.extract import extract_main_text
 from jd.fetch import fetch_job_description
 from llm.job_analysis import analyze_job_description
 
-st.set_page_config(page_title="Job Input", page_icon="📝", layout="wide")
+st.set_page_config(page_title="Job Input", layout="wide")
 
 from app.styling import inject_custom_css, page_header, progress_stepper
 inject_custom_css()
@@ -20,12 +20,14 @@ db = get_db()
 user = require_user()
 render_user_badge(user)
 
-page_header("📝", "Job Input", "Paste a posting or link to it -- we'll analyze it before touching your resume.")
+page_header("Job Input", "Paste a posting or link to it -- we'll analyze it before touching your resume.")
 progress_stepper("job_input")
 
 master_resume = repo.get_master_resume(db, user["uid"])
 if master_resume is None:
-    st.warning("Upload a master resume on the Home page first.")
+    st.warning("Upload a master resume on the Profile page first.")
+    if st.button("Go to Profile"):
+        st.switch_page("Profile.py")
     st.stop()
 
 source = st.radio("How do you want to provide the job description?", ["Paste text", "Job URL"])
