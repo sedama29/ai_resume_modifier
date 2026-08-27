@@ -1,0 +1,41 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent
+
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_MODEL = "openai/gpt-oss-120b"
+
+DB_PATH = os.environ.get("DB_PATH", str(BASE_DIR / "storage" / "app.db"))
+STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", str(BASE_DIR / "storage")))
+MASTER_RESUME_PATH = str(BASE_DIR / "Resources" / "main.tex")
+
+OVERLEAF_BROWSER_PROFILE_DIR = str(BASE_DIR / "storage" / "browser_profile")
+
+# Estimated Groq pricing for openai/gpt-oss-120b (per 1M tokens). Re-check
+# against console.groq.com/docs/models if this needs to stay accurate long-term.
+GROQ_INPUT_PRICE_PER_1M = 0.15
+GROQ_OUTPUT_PRICE_PER_1M = 0.60
+
+# --- Firebase ---
+FIREBASE_SERVICE_ACCOUNT_PATH = os.environ.get(
+    "FIREBASE_SERVICE_ACCOUNT_PATH",
+    str(BASE_DIR / "secrets" / "ai-resume-modifier-firebase-adminsdk-fbsvc-0174734850.json"),
+)
+SUPERUSER_BOOTSTRAP_EMAIL = os.environ.get("SUPERUSER_BOOTSTRAP_EMAIL", "sathwikareddy0799@gmail.com")
+
+# Client-side Firebase config -- not a secret by Firebase's own design (security
+# is enforced by Firestore rules + server-side ID token verification, not by
+# hiding this object), safe to keep in source.
+FIREBASE_CONFIG = {
+    "apiKey": "AIzaSyDAbm7eAAnZD0APWzXG5aDedGGJ85rFcSg",
+    "authDomain": "ai-resume-modifier.firebaseapp.com",
+    "projectId": "ai-resume-modifier",
+    "storageBucket": "ai-resume-modifier.firebasestorage.app",
+    "messagingSenderId": "665190029564",
+    "appId": "1:665190029564:web:941767076ad08887771f79",
+}

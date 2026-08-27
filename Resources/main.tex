@@ -1,0 +1,286 @@
+%
+%Academic CV LaTeX Template
+% Author: Dubasi Pavan Kumar
+% LinkedIn: https://www.linkedin.com/in/im-pavankumar/
+% License: MIT
+%
+% For errors, suggestions, or improvements, please contact:
+% Email: pavankumard.pg19.ma@nitp.ac.in
+%
+
+
+
+\documentclass[a4paper,11pt]{article}
+
+% Package imports
+\usepackage{latexsym}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{ragged2e}
+\usepackage[empty]{fullpage}
+\usepackage{wrapfig}
+\usepackage{lipsum}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{geometry}
+\usepackage{marvosym}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{cfr-lm}
+\usepackage[T1]{fontenc}
+\usepackage{fontawesome5}
+\usepackage{ragged2e}
+
+% Color definitions
+\definecolor{darkblue}{RGB}{0,0,139}
+
+% Page layout
+\setlength{\multicolsep}{0pt} 
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\geometry{left=1.4cm, top=0.8cm, right=1.2cm, bottom=1cm}
+\setlength{\footskip}{5pt} % Addressing fancyhdr warning
+
+% Hyperlink setup (moved after fancyhdr to address warning)
+\usepackage[hidelinks, colorlinks=true, linkcolor=darkblue, filecolor=darkblue, urlcolor=darkblue]{hyperref}
+
+% Custom box settings
+\usepackage[most]{tcolorbox}
+\tcbset{
+    frame code={},
+    center title,
+    left=0pt,
+    right=0pt,
+    top=0pt,
+    bottom=0pt,
+    colback=gray!20,
+    colframe=white,
+    width=\dimexpr\textwidth\relax,
+    enlarge left by=-2mm,
+    boxsep=4pt,
+    arc=0pt,outer arc=0pt,
+}
+
+% URL style
+\urlstyle{same}
+
+% Text alignment
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Section formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-7pt}]
+
+% Custom commands
+\newcommand{\resumeItem}[2]{
+  \item{
+    \textbf{#1}{\hspace{0.5mm}#2 \vspace{-0.5mm}}
+  }
+}
+
+\newcommand{\resumePOR}[3]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1}\hspace{0.3mm}#2 & \textit{\small{#3}} 
+    \end{tabular*}
+    \vspace{-2mm}
+}
+
+\newcommand{\resumeSubheading}[4]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.98\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1} & \textit{\footnotesize{#4}} \\
+        \textit{\footnotesize{#3}} &  \footnotesize{#2}\\
+    \end{tabular*}
+    \vspace{-2.4mm}
+}
+
+\newcommand{\resumeProject}[4]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.98\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1} & \textit{\footnotesize{#3}} \\
+        \footnotesize{\textit{#2}} & \footnotesize{#4}
+    \end{tabular*}
+    \vspace{-2.4mm}
+}
+
+\newcommand{\resumeSubItem}[2]{\resumeItem{#1}{#2}\vspace{-4pt}}
+
+\renewcommand{\labelitemi}{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\renewcommand{\labelitemii}{$\vcenter{\hbox{\tiny$\circ$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*,labelsep=1mm]}
+\newcommand{\resumeHeadingSkillStart}{\begin{itemize}[leftmargin=*,itemsep=1.7mm, rightmargin=2ex]}
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=*,labelsep=1mm,itemsep=0.5mm]}
+
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}\vspace{2mm}}
+\newcommand{\resumeHeadingSkillEnd}{\end{itemize}\vspace{-2mm}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-2mm}}
+\newcommand{\cvsection}[1]{%
+\vspace{2mm}
+\begin{tcolorbox}
+    \textbf{\large #1}
+\end{tcolorbox}
+    \vspace{-4mm}
+}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}%
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\newcolumntype{C}{>{\centering\arraybackslash}X}%
+
+% Commands for icon sizing and positioning
+\newcommand{\socialicon}[1]{\raisebox{-0.05em}{\resizebox{!}{1em}{#1}}}
+\newcommand{\ieeeicon}[1]{\raisebox{-0.3em}{\resizebox{!}{1.3em}{#1}}}
+
+% Font options
+\newcommand{\headerfonti}{\fontfamily{phv}\selectfont} % Helvetica-like (similar to Arial/Calibri)
+\newcommand{\headerfontii}{\fontfamily{ptm}\selectfont} % Times-like (similar to Times New Roman)
+\newcommand{\headerfontiii}{\fontfamily{ppl}\selectfont} % Palatino (elegant serif)
+\newcommand{\headerfontiv}{\fontfamily{pbk}\selectfont} % Bookman (readable serif)
+\newcommand{\headerfontv}{\fontfamily{pag}\selectfont} % Avant Garde-like (similar to Trebuchet MS)
+\newcommand{\headerfontvi}{\fontfamily{cmss}\selectfont} % Computer Modern Sans Serif
+\newcommand{\headerfontvii}{\fontfamily{qhv}\selectfont} % Quasi-Helvetica (another Arial/Calibri alternative)
+\newcommand{\headerfontviii}{\fontfamily{qpl}\selectfont} % Quasi-Palatino (another elegant serif option)
+\newcommand{\headerfontix}{\fontfamily{qtm}\selectfont} % Quasi-Times (another Times New Roman alternative)
+\newcommand{\headerfontx}{\fontfamily{bch}\selectfont} % Charter (clean serif font)
+
+\begin{document}
+\headerfontiii
+
+% Header
+\begin{center}
+    {\Huge\textbf{Sathwika Edama}}
+\end{center}
+\vspace{-6mm}
+
+\begin{center}
+    \footnotesize{
+    \faPhone\ +1-2127319679 \ | \faEnvelope\ \href{mailto:sathwikareddy0799@gmail.com}{sathwikareddy0799@gmail.com} \ |
+    \faGithub \ \href{https://github.com/sedama29}{sathwika reddy} \ | 
+    \faMapMarker \ Corpus Christi, TX
+    }
+\end{center}
+
+
+\vspace{-4mm}
+
+\section{\textbf{SUMMARY }}
+\vspace{1mm}
+\small{
+\begin{justify}
+Experienced \textbf{Software Applications Developer} with strong expertise in FastAPI, JavaScript, machine learning, and large-scale data processing. Developed and maintained production systems including the \textbf{ePredictor platform}, implementing interactive heat maps and optimizing ML model runtime with HPC. Published an iOS app providing prediction and heat-map data for 177 Texas Beach Watch sites, with the Android version in testing. Built and enhanced key applications such as the \textbf{Phytoplankton Dashboard}, \textbf{GCOOS Model Handler}, and \textbf{UGOS Catalog}. Skilled in Docker, Singularity, Firebase authentication, cloud/server management (AWS, DigitalOcean), and geospatial data processing using GeoPandas and multiprocessing. 
+\end{justify}
+\vspace{-4mm}
+
+\section{\textbf{PROFESSIONAL EXPERIENCE  }}
+\vspace{-0.4mm}
+\resumeSubHeadingListStart
+
+
+    \resumeSubheading
+    {{Harte Research Institute for Gulf of Mexico Studies at TAMU-CC }}{Corpus Christi, Tx }
+    {\textbf{Software Applications Developer}}{Mar '25 - Present }
+    \resumeItemListStart
+        \item Maintained and enhanced the \textbf{ePredictor platform}, generating automated heat maps for Enterococcus predictions.
+        \item Published an \textbf{iOS application} supporting interactive coastal prediction visualizations; Android version currently in testing.
+        \item Improved ML prediction performance by \textbf{optimizing model runtime on HPC systems}.
+        \item Contributed to the \textbf{GCOOS Model Handler}, integrating regional metocean models hosted on THREDDS servers.
+        \item Enhanced the \textbf{Phytoplankton Dashboard}, adding custom project creation and advanced user-management features.
+    \resumeItemListEnd
+        
+    \resumeSubheading
+      {{Harte Research Institute for Gulf of Mexico Studies at TAMU-CC }}{Corpus Christi, Tx }
+      {\textbf{Research Specialist} }{Jul '23 - Feb '25 }
+      \resumeItemListStart
+        \item Developed an end-to-end web system using FastAPI, JavaScript, HTML, and CSS for phytoplankton image management.
+        \item Built ML models (Encoder--Decoder, Bidirectional CNN) to forecast Enterococcus levels with over 85\% accuracy; presented at GOMCON.
+        \item Created and maintained a \textbf{data catalog of 250,000+ datasets}, enabling streamlined data ingestion and retrieval.
+        \item Developed a React-based authenticated application integrating real-time ML predictions.
+        \item Built a flood-event reporting platform enabling real-time citizen-based data collection.
+        \item Processed over 10TB of coastal mobility data using GeoPandas, multiprocessing, and HPC.
+        \item Managed end-to-end performance and uptime for multiple production websites.
+        \item Leveraged GPU-enabled HPC resources to train large ML models efficiently.
+        \item Configured AWStats for usage monitoring and analytics.
+      \resumeItemListEnd 
+      
+    \resumeSubheading
+      {{Harte Research Institute for Gulf of Mexico Studies at TAMU-CC }}{Corpus Christi, Tx }
+      {\textbf{\textbf{Graduate Research Assistant}} }{Jan '22 - May '23 }
+      \resumeItemListStart
+        \item Conducted data analysis using Pandas, NumPy, and machine learning models including LSTM.
+        \item Created map visualizations using Folium for ocean-adjacent datasets.
+        \item Automated workflows using Python and SQL, improving data-processing efficiency.
+        \item Built a decision-tree based web tool for Living Shoreline Site Suitability.
+        \item Developed automated UI testing workflows with Selenium.
+      \resumeItemListEnd 
+       \resumeSubheading
+      {{\textbf{Tata Consultancy Services} }}{Hyderabad, IN }
+      {\textbf{\textbf{Associate System Engineer}} }{Jan '21 - Jan '22}
+      \resumeItemListStart
+        \item Developed an e-commerce platform using Outsystems; implemented UI, backend logic, and database structures.
+        \item Collaborated in Git-based workflows for version control and reviews.
+      \resumeItemListEnd 
+      \resumeSubheading
+      {{\textbf{Whitehat Jr}}}{Mumbai, IN }
+      {\textbf{\textbf{Coding Instructor}} }{Sep '20 - Jan '21}
+      \resumeItemListStart
+        \item Delivered coding instruction to students (Grades 6--12) through interactive web projects.
+        \item Built 15+ mini-games and applications using JavaScript, HTML, and CSS.
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+\vspace{-6mm}
+
+\section{\textbf{Education}}
+\vspace{-0.4mm}
+\resumeSubHeadingListStart
+
+\resumeSubheading
+{Texas A\&M University-Corpus Christi  }{Corpus Christi, Tx  }
+{Masters in Computer Science }{Jan '22 - May '23 }
+\resumeItemListStart
+\item GPA: 3.6 /4.00
+\resumeItemListEnd
+
+\resumeSubheading
+{Sreenidhi Institute of Science \& Technology  }{Hyderabad, IN  }
+{Bachelor's in Electronics and Communications Engineering }{Aug '16 - May '20  }
+\resumeItemListStart
+\item GPA: 3.8/4.0 
+\resumeItemListEnd
+\resumeSubHeadingListEnd
+\vspace{-6mm}
+
+\section{\textbf{Skills}}
+\vspace{-0.4mm}
+\begin{itemize}[left=0mm, itemsep=0.3mm]
+    \item Proficient in Java, C, Python, PHP.
+    \item Expertise in  SQLite, PostgreSQL,  MongoDB.
+    \item Skilled in React, React Native, Node.js,  HTML, CSS, JavaScript, XML, JSON, Kafka.
+    \item \textbf{Data Science \& Machine Learning}: Pandas, NumPy, LSTM, Encoder-Decoder Models, Bidirectional CNNs, TensorFlow.
+    \item \textbf{Cloud Technologies}: Google Cloud, DigitalOcean.
+    \item \textbf{Version Control}: GitHub, Git, GitLab, Git Bash.
+    \item \textbf{Other Tools \& Technologies}: ArcGIS Pro, Folium, Tableau, Power BI, Outsystems, React Dashboards.
+\end{itemize}
+
+
+\section{\textbf{Certifications}}
+\vspace{-0.2mm}
+\resumeSubHeadingListStart
+\resumePOR{}{\href{https://google.accredible.com/ba2013b5-dcbb-451a-8463-7506c1d86b0e\#acc.1KQMXJvt}{
+\textbf{Google Associate Cloud Engineer}
+}}{Oct'23}
+\resumePOR{}{\href{https://www.coursera.org/account/accomplishments/specialization/EDHVYWQJPFNJ?utm\_source=ln\&utm\_medium=certificate\&utm\_content=cert\_image\&utm\_campaign=pdf\_header\_button\&utm\_product=s12n}{
+\textbf{Machine Learning from Coursera}
+}}{July'23}
+\resumeSubHeadingListEnd
+\vspace{-6mm}
+
+\end{document}
