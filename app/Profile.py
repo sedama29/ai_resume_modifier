@@ -268,9 +268,9 @@ if master_resume:
 
         st.write("")
         if pdf_available:
-            row = st.columns(4)
+            row = st.columns(3)
             with row[0]:
-                if st.button("View PDF", use_container_width=True):
+                if st.button("View PDF", type="primary", use_container_width=True):
                     _view_pdf_dialog()
             with row[1]:
                 st.download_button(
@@ -281,7 +281,9 @@ if master_resume:
                 st.download_button(
                     "Download TEX", tex_bytes, file_name="main.tex", mime="text/plain", use_container_width=True,
                 )
-            with row[3]:
+            st.write("")
+            replace_col, _ = st.columns([1, 2])
+            with replace_col:
                 if st.button("Replace Master Resume", use_container_width=True):
                     _replace_resume_dialog()
         else:
