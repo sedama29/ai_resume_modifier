@@ -74,7 +74,23 @@ says, and let the human verify specifics with the employer.
 Also assess experience_gap_years (required years minus candidate's actual years,
 null if not stated) and education_match, distinguishing required vs. preferred
 requirements -- do not conclude do_not_apply solely because a PREFERRED requirement
-isn't met."""
+isn't met.
+
+Also populate requirement_checks: one entry for EACH of these categories --
+experience, education, required_skills, work_authorization, h1b_sponsorship,
+citizenship_residency, security_clearance -- plus one additional entry per any
+OTHER mandatory requirement the posting states (background check, travel
+percentage, driver's license, clearance-eligibility, etc.), using category
+"other" with a short human-readable label.
+
+For each entry, status must be one of: meets, does_not_meet, potential_issue,
+not_mentioned, needs_verification. Never guess or assume H-1B/sponsorship
+ineligibility -- if the posting does not explicitly address work authorization
+or sponsorship, set status to "not_mentioned" and say in detail that no explicit
+restriction was found and the employer's policy may need to be verified
+directly with them. Reserve does_not_meet / explicit_restriction-equivalent
+statuses for postings that explicitly state a restriction (e.g. "must be a US
+citizen", "unable to sponsor now or in the future")."""
 
 
 def skill_match_system_prompt(candidate_context: str) -> str:

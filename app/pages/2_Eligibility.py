@@ -7,7 +7,7 @@ import streamlit as st
 
 import db.repository as repo
 from app.state import get_db, render_user_badge, require_active_application_id, require_user
-from app.styling import status_badge, status_card
+from app.styling import requirement_row, status_badge, status_card
 from llm.eligibility import check_eligibility
 
 
@@ -60,17 +60,54 @@ description_parts.append(f"Education: {eligibility['education_match']}.")
 status_card(label, " ".join(p for p in description_parts if p), tone)
 st.caption("This is not legal advice. Verify sponsorship/work-authorization specifics directly with the employer.")
 
-WORK_AUTH_DISPLAY = {
-    "explicitly_compatible": ("green", "Sponsorship/work authorization compatible"),
-    "potentially_compatible": ("yellow", "No explicit restriction found — verify with the employer"),
-    "potential_issue": ("yellow", "Requires authorization without sponsorship"),
-    "explicit_restriction": ("red", "Explicit eligibility restriction"),
-    "not_mentioned": ("gray", "Work authorization not mentioned"),
-    "needs_verification": ("yellow", "Ambiguous language — needs verification"),
+CATEGORY_ORDER = [
+    "experience", "education", "required_skills", "work_authorization",
+    "h1b_sponsorship", "citizenship_residency", "security_clearance",
+]
+CATEGORY_LABELS = {
+    "experience": "Experience",
+    "education": "Education",
+    "required_skills": "Required Skills",
+    "work_authorization": "Work Authorization",
+    "h1b_sponsorship": "H-1B / Sponsorship",
+    "citizenship_residency": "Citizenship / Residency",
+    "security_clearance": "Security Clearance",
+    "other": "Other Requirement",
 }
-wa_tone, wa_label = WORK_AUTH_DISPLAY.get(eligibility["work_auth_category"], ("gray", eligibility["work_auth_category"]))
+
+requirement_checks = eligibility.get("requirement_checks") or []
+checks_by_category = {}
+other_checks = []
+for c in requirement_checks:
+    if c["category"] == "other":
+        other_checks.append(c)
+    else:
+        checks_by_category[c["category"]] = c
+
 st.write("")
-st.markdown(status_badge(wa_label, wa_tone), unsafe_allow_html=True)
+if requirement_checks:
+    st.markdown("**Requirement Breakdown**")
+    with st.container(border=True):
+        for cat in CATEGORY_ORDER:
+            check = checks_by_category.get(cat)
+            if check:
+                requirement_row(CATEGORY_LABELS[cat], check["status"], check["detail"])
+            else:
+                requirement_row(CATEGORY_LABELS[cat], "not_mentioned", "Not addressed in this check.")
+        for c in other_checks:
+            requirement_row(c.get("label") or CATEGORY_LABELS["other"], c["status"], c["detail"])
+else:
+    st.caption('Detailed requirement breakdown isn\'t available for this result -- click "Re-run eligibility check" above to generate one.')
+    WORK_AUTH_DISPLAY = {
+        "explicitly_compatible": ("green", "Sponsorship/work authorization compatible"),
+        "potentially_compatible": ("yellow", "No explicit restriction found — verify with the employer"),
+        "potential_issue": ("yellow", "Requires authorization without sponsorship"),
+        "explicit_restriction": ("red", "Explicit eligibility restriction"),
+        "not_mentioned": ("gray", "Work authorization not mentioned"),
+        "needs_verification": ("yellow", "Ambiguous language — needs verification"),
+    }
+    wa_tone, wa_label = WORK_AUTH_DISPLAY.get(eligibility["work_auth_category"], ("gray", eligibility["work_auth_category"]))
+    st.markdown(status_badge(wa_label, wa_tone), unsafe_allow_html=True)
 
 evidence = eligibility.get("work_auth_evidence_quotes") or []
 if evidence:

@@ -49,7 +49,7 @@ with st.container(border=True):
     st.write("✓ Changes reviewed" if f"final_content_model_{application_id}" in st.session_state else "○ Using unmodified master resume")
 
 st.write("")
-st.markdown("**What would you like to do?**")
+st.markdown("**How would you like to save this resume?**")
 
 mode_key = f"generate_mode_{application_id}"
 st.session_state.setdefault(mode_key, "new")

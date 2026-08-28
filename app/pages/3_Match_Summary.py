@@ -87,7 +87,7 @@ with col2:
 
 if implied:
     st.write("")
-    st.markdown("**Potential Concerns — needs your confirmation**")
+    st.markdown("**Potentially matching — not currently listed on your resume**")
     for i in implied:
         st.write(f"! {i['skill']}: _{i.get('reasoning', '')}_")
 

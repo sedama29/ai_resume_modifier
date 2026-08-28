@@ -29,52 +29,14 @@ if master_resume is None:
         st.switch_page("Profile.py")
     st.stop()
 
-st.markdown("**How would you like to provide the job?**")
-tab_paste, tab_url = st.tabs(["Paste Description", "Job Posting URL"])
 
-job_url = None
-jd_source = st.session_state.get("jd_source", "pasted")
-
-with tab_paste:
-    st.caption("Paste the full job posting text below.")
-    pasted = st.text_area("Paste text", key="paste_input", label_visibility="collapsed", height=130)
-    if pasted:
-        st.session_state["jd_text_draft"] = pasted
-        jd_source = "pasted"
-
-with tab_url:
-    st.caption("Enter a link and we'll try to extract the posting text.")
-    job_url = st.text_input("Job posting URL", key="job_url_input", label_visibility="collapsed", placeholder="https://...")
-    if st.button("Fetch job description") and job_url:
-        try:
-            html = fetch_job_description(job_url)
-            extracted = extract_main_text(html)
-        except Exception as e:
-            st.error(f"Couldn't fetch that URL: {e}. Paste the job description text in the other tab instead.")
-            extracted = None
-        if extracted:
-            st.session_state["jd_text_draft"] = extracted
-            jd_source = "url"
-        else:
-            st.warning("Couldn't cleanly extract the posting text -- use the Paste tab instead.")
-
-st.session_state["jd_source"] = jd_source
-
-st.write("")
-jd_text = st.text_area(
-    "Job description text (edit as needed)",
-    value=st.session_state.get("jd_text_draft", ""),
-    height=170,
-    key="jd_text_area",
-)
-
-if st.button("Analyze Job", type="primary", disabled=not jd_text.strip()):
+def _analyze_and_advance(jd_text: str, jd_source: str, job_url: str | None) -> None:
     with st.spinner("Analyzing job description..."):
         try:
             analysis = analyze_job_description(jd_text, db, user["uid"])
         except Exception as e:
             st.error(f"Job analysis failed: {e}")
-            st.stop()
+            return
 
     application_id = repo.create_job_application(
         db,
@@ -88,6 +50,33 @@ if st.button("Analyze Job", type="primary", disabled=not jd_text.strip()):
     repo.save_job_analysis_result(db, user["uid"], application_id, analysis)
     repo.update_job_application_status(db, user["uid"], application_id, "analyzed")
     set_active_application_id(application_id)
-    st.session_state.pop("jd_text_draft", None)
     st.success(f"Analyzed: {analysis.get('company')} — {analysis.get('job_title')}")
     st.switch_page("pages/2_Eligibility.py")
+
+
+st.markdown("**How would you like to provide the job?**")
+tab_paste, tab_url = st.tabs(["Paste Description", "Job Posting URL"])
+
+with tab_paste:
+    pasted = st.text_area(
+        "Paste the job description below.", key="paste_input", height=220,
+    )
+    if st.button("Analyze Job", type="primary", disabled=not pasted.strip(), key="analyze_pasted"):
+        _analyze_and_advance(pasted, "pasted", None)
+
+with tab_url:
+    job_url = st.text_input(
+        "Job posting URL", key="job_url_input", placeholder="https://...",
+    )
+    if st.button("Fetch & Analyze Job", type="primary", disabled=not job_url, key="fetch_analyze"):
+        with st.spinner("Fetching job posting..."):
+            try:
+                html = fetch_job_description(job_url)
+                extracted = extract_main_text(html)
+            except Exception as e:
+                st.error(f"Couldn't fetch that URL: {e}. Try the Paste Description tab instead.")
+                extracted = None
+        if extracted:
+            _analyze_and_advance(extracted, "url", job_url)
+        else:
+            st.warning("Couldn't cleanly extract the posting text -- use the Paste Description tab instead.")

@@ -269,22 +269,47 @@ def status_card(label: str, description: str, tone: str) -> None:
     """A single prominent status card (used by Eligibility) -- only this card
     carries the semantic color, not the whole page."""
     colors = {
-        "green": ("#F0FDF4", "#BBF7D0", "#15803D", "✓"),
-        "yellow": ("#FFFBEB", "#FDE68A", "#B45309", "!"),
-        "red": ("#FEF2F2", "#FECACA", "#B91C1C", "✕"),
-        "gray": ("#FAFAF9", "#E4E4E7", "#71717A", "?"),
+        "green": ("#F0FDF4", "#BBF7D0", "#15803D", "🟢"),
+        "yellow": ("#FFFBEB", "#FDE68A", "#B45309", "🟡"),
+        "red": ("#FEF2F2", "#FECACA", "#B91C1C", "🔴"),
+        "gray": ("#FAFAF9", "#E4E4E7", "#71717A", "⚪"),
     }
     bg, border, fg, icon = colors.get(tone, colors["gray"])
     st.markdown(
         f"""
         <div style="background:{bg};border:1px solid {border};border-radius:10px;padding:20px 22px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:26px;height:26px;border-radius:50%;background:{fg};color:#FFFFFF;
-                        display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;
-                        flex-shrink:0;">{icon}</div>
+            <div style="font-size:1.3rem;line-height:1;flex-shrink:0;">{icon}</div>
             <div style="font-size:1.05rem;font-weight:650;color:{fg};">{label}</div>
           </div>
           <div style="color:#3F3F46;margin-top:8px;font-size:0.92rem;">{description}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+REQUIREMENT_STATUS_DISPLAY = {
+    "meets": ("green", "Meets"),
+    "does_not_meet": ("red", "Does Not Meet"),
+    "potential_issue": ("yellow", "Potential Issue"),
+    "not_mentioned": ("gray", "Not Mentioned"),
+    "needs_verification": ("yellow", "Needs Verification"),
+}
+
+
+def requirement_row(label: str, status: str, detail: str) -> None:
+    """One row of the eligibility requirement breakdown -- label, a small
+    status badge, and the reasoning/detail text underneath."""
+    tone, status_label = REQUIREMENT_STATUS_DISPLAY.get(status, ("gray", status.replace("_", " ").title()))
+    st.markdown(
+        f"""
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">{label}</div>
+            {status_badge(status_label, tone)}
+          </div>
+          <div style="color:var(--muted);font-size:0.85rem;margin-top:3px;">{detail}</div>
         </div>
         """,
         unsafe_allow_html=True,

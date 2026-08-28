@@ -43,10 +43,32 @@ ELIGIBILITY_SCHEMA = {
             "enum": ["strong_fit", "proceed", "proceed_with_caution", "do_not_apply", "insufficient_information"],
         },
         "recommendation_reasoning": {"type": "string"},
+        "requirement_checks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "experience", "education", "required_skills", "work_authorization",
+                            "h1b_sponsorship", "citizenship_residency", "security_clearance", "other",
+                        ],
+                    },
+                    "label": {"type": "string"},
+                    "status": {
+                        "type": "string",
+                        "enum": ["meets", "does_not_meet", "potential_issue", "not_mentioned", "needs_verification"],
+                    },
+                    "detail": {"type": "string"},
+                },
+                "required": ["category", "status", "detail"],
+            },
+        },
     },
     "required": [
         "work_auth_category", "work_auth_reasoning", "education_match",
-        "overall_recommendation", "recommendation_reasoning",
+        "overall_recommendation", "recommendation_reasoning", "requirement_checks",
     ],
 }
 
