@@ -31,6 +31,14 @@ _HERO_HTML = """
 def require_user() -> dict:
     """Auth gate -- call at the top of every page. Blocks (st.stop()) until a
     signed-in AND authorized user is established in session_state."""
+    # There must be exactly one firebase_login_widget(key="firebase_login")
+    # call per script run -- Streamlit errors on a duplicate element key if
+    # it's rendered twice in the same run. sign_out() used to call it a
+    # second time later in the same run (from the Sign out button further
+    # down the page); it now only sets this flag, and this single call site
+    # picks it up and forwards it as the widget's command.
+    pending_command = st.session_state.pop("_firebase_pending_command", None)
+
     user = get_current_user()
     if user is not None:
         # Keep one live Firebase Auth JS client mounted for the whole
@@ -46,7 +54,7 @@ def require_user() -> dict:
     st.markdown(_HERO_HTML, unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.1, 1])
     with col2:
-        result = firebase_login_widget(key="firebase_login")
+        result = firebase_login_widget(command=pending_command, key="firebase_login")
 
     if result is None:
         with col2:
@@ -125,7 +133,10 @@ def require_superuser(user: dict) -> None:
 
 
 def sign_out() -> None:
-    firebase_login_widget(command="sign_out", key="firebase_login")
+    # Deferred: require_user() is the only call site allowed to invoke
+    # firebase_login_widget() in a given script run (see its comment). The
+    # next run picks this up and forwards it as that single call's command.
+    st.session_state["_firebase_pending_command"] = "sign_out"
     st.session_state.pop("user", None)
     st.rerun()
 
