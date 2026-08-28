@@ -98,11 +98,18 @@ def require_user() -> dict:
         st.stop()
 
     if record is None or not record.get("active"):
+        # Firebase's own persisted session has no idea this account failed
+        # OUR authorization check -- without an explicit, working sign-out
+        # here, onAuthStateChanged just reports "signed_in" with the same
+        # token again on every reload, re-entering this exact branch forever
+        # with no way out. The button actually clears the Firebase session
+        # (not just this page's state), so the next attempt starts clean.
         st.title("Access Denied")
-        st.error(
-            f"{email} is not authorized to use this application. "
-            "Contact the administrator if you believe this is a mistake."
-        )
+        st.error(f"Your Google account ({email}) is not authorized to use this application.")
+        st.caption("Contact the administrator if you believe this is a mistake.")
+        with col2:
+            if st.button("Back to Sign In", type="primary", use_container_width=True):
+                sign_out()
         st.stop()
 
     authz.record_login(email, claims["uid"])
