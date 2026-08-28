@@ -7,7 +7,7 @@ import streamlit as st
 
 import db.repository as repo
 from app.state import get_db, render_user_badge, require_active_application_id, require_user
-from app.styling import requirement_row, status_badge, status_card
+from app.styling import requirement_row, status_card
 from llm.eligibility import check_eligibility
 
 
@@ -29,7 +29,11 @@ if job_analysis is None:
     st.error("No job analysis found for this application. Go back to Job Input.")
     st.stop()
 
-st.caption(f"{application['company'] or 'Unknown company'} — {application['job_title'] or 'Unknown title'}")
+# Never show a fabricated placeholder like "Unknown company" -- only show
+# what's actually known, in whatever combination is available.
+title_bits = [b for b in [application.get("company"), application.get("job_title")] if b]
+if title_bits:
+    st.caption(" — ".join(title_bits))
 
 eligibility = repo.get_latest_eligibility_result(db, user["uid"], application_id)
 
@@ -53,13 +57,6 @@ RECOMMENDATION_DISPLAY = {
 }
 tone, label = RECOMMENDATION_DISPLAY.get(eligibility["overall_recommendation"], ("gray", "Unclear"))
 
-description_parts = [eligibility["work_auth_reasoning"]]
-if eligibility.get("experience_gap_assessment"):
-    description_parts.append(eligibility["experience_gap_assessment"])
-description_parts.append(f"Education: {eligibility['education_match']}.")
-status_card(label, " ".join(p for p in description_parts if p), tone)
-st.caption("This is not legal advice. Verify sponsorship/work-authorization specifics directly with the employer.")
-
 CATEGORY_ORDER = [
     "experience", "education", "required_skills", "work_authorization",
     "h1b_sponsorship", "citizenship_residency", "security_clearance",
@@ -74,40 +71,73 @@ CATEGORY_LABELS = {
     "security_clearance": "Security Clearance",
     "other": "Other Requirement",
 }
+# The auth-family categories that, when ALL unmentioned, collapse into one
+# plain-English sentence instead of listing each one only to say "not
+# mentioned" four separate times.
+AUTH_CATEGORIES = ["work_authorization", "h1b_sponsorship", "citizenship_residency", "security_clearance"]
+AUTH_PHRASES = {
+    "work_authorization": "work authorization", "h1b_sponsorship": "sponsorship",
+    "citizenship_residency": "citizenship, residency", "security_clearance": "security-clearance",
+}
 
 requirement_checks = eligibility.get("requirement_checks") or []
-checks_by_category = {}
-other_checks = []
-for c in requirement_checks:
-    if c["category"] == "other":
-        other_checks.append(c)
+checks_by_category = {c["category"]: c for c in requirement_checks if c["category"] != "other"}
+other_checks = [c for c in requirement_checks if c["category"] == "other"]
+
+
+def _short_explanation() -> str:
+    """A concise, scannable summary built entirely from the already-computed
+    requirement statuses -- no new judgment, just plain-English phrasing of
+    what the checks below already say."""
+    sentences = []
+
+    auth_statuses = {cat: checks_by_category.get(cat, {}).get("status") for cat in AUTH_CATEGORIES}
+    if all(s == "not_mentioned" for s in auth_statuses.values()):
+        sentences.append(
+            "No work authorization, sponsorship, citizenship, residency, or security-clearance "
+            "requirements were identified in the job description."
+        )
+    elif any(s in ("does_not_meet", "potential_issue", "needs_verification") for s in auth_statuses.values()):
+        sentences.append("Some work authorization or eligibility requirements need your attention -- see the summary below.")
     else:
-        checks_by_category[c["category"]] = c
+        unmentioned = [AUTH_PHRASES[c] for c, s in auth_statuses.items() if s == "not_mentioned"]
+        if unmentioned:
+            sentences.append(f"No {', '.join(unmentioned)} requirements were identified in the job description.")
+
+    exp_status = checks_by_category.get("experience", {}).get("status")
+    if exp_status == "not_mentioned":
+        sentences.append("No minimum years of experience were specified.")
+    elif exp_status == "meets":
+        sentences.append("Your experience meets the stated requirement.")
+    elif exp_status in ("does_not_meet", "potential_issue", "needs_verification"):
+        sentences.append("Your experience may need a closer look against the stated requirement.")
+
+    return " ".join(sentences) or "See the requirement summary below for details."
+
+
+status_card(label, _short_explanation(), tone)
+st.caption("This is not legal advice. Verify sponsorship/work-authorization specifics directly with the employer.")
 
 st.write("")
 if requirement_checks:
-    st.markdown("**Requirement Breakdown**")
+    st.markdown("**Requirement Summary**")
     with st.container(border=True):
         for cat in CATEGORY_ORDER:
             check = checks_by_category.get(cat)
-            if check:
+            if cat == "required_skills":
+                # The eligibility check only has the posting text, not the
+                # candidate's actual resume -- real skill matching happens
+                # on the next step, so don't let the model editorialize here.
+                status = check["status"] if check else "not_mentioned"
+                requirement_row(CATEGORY_LABELS[cat], status, "Skills will be evaluated against your profile on the next step.")
+            elif check:
                 requirement_row(CATEGORY_LABELS[cat], check["status"], check["detail"])
             else:
                 requirement_row(CATEGORY_LABELS[cat], "not_mentioned", "Not addressed in this check.")
         for c in other_checks:
             requirement_row(c.get("label") or CATEGORY_LABELS["other"], c["status"], c["detail"])
 else:
-    st.caption('Detailed requirement breakdown isn\'t available for this result -- click "Re-run eligibility check" above to generate one.')
-    WORK_AUTH_DISPLAY = {
-        "explicitly_compatible": ("green", "Sponsorship/work authorization compatible"),
-        "potentially_compatible": ("yellow", "No explicit restriction found — verify with the employer"),
-        "potential_issue": ("yellow", "Requires authorization without sponsorship"),
-        "explicit_restriction": ("red", "Explicit eligibility restriction"),
-        "not_mentioned": ("gray", "Work authorization not mentioned"),
-        "needs_verification": ("yellow", "Ambiguous language — needs verification"),
-    }
-    wa_tone, wa_label = WORK_AUTH_DISPLAY.get(eligibility["work_auth_category"], ("gray", eligibility["work_auth_category"]))
-    st.markdown(status_badge(wa_label, wa_tone), unsafe_allow_html=True)
+    st.caption('A detailed requirement summary isn\'t available for this result -- click "Re-run eligibility check" above to generate one.')
 
 evidence = eligibility.get("work_auth_evidence_quotes") or []
 if evidence:

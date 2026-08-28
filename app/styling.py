@@ -290,11 +290,15 @@ def status_card(label: str, description: str, tone: str) -> None:
 
 
 REQUIREMENT_STATUS_DISPLAY = {
-    "meets": ("green", "Meets"),
-    "does_not_meet": ("red", "Does Not Meet"),
-    "potential_issue": ("yellow", "Potential Issue"),
-    "not_mentioned": ("gray", "Not Mentioned"),
+    "meets": ("green", "Requirement Met"),
+    "does_not_meet": ("red", "Requirement Not Met"),
+    # Consolidated to the same four canonical labels the page shows --
+    # "potential_issue" reads identically to "needs_verification" to a user
+    # (ambiguous, worth double-checking); the underlying status value each
+    # check actually carries is unchanged, only its displayed label merges.
+    "potential_issue": ("yellow", "Needs Verification"),
     "needs_verification": ("yellow", "Needs Verification"),
+    "not_mentioned": ("gray", "Not Mentioned"),
 }
 
 
