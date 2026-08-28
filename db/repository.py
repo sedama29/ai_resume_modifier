@@ -42,7 +42,8 @@ def _resume_version_ref(db: Client, owner_uid: str, application_id: str, resume_
 # --- master_resume (users/{uid}.master_resume) --------------------------------
 
 def set_master_resume(
-    db: Client, owner_uid: str, source_storage_path: str, content_model: ContentModel, skeleton_hash: str
+    db: Client, owner_uid: str, source_storage_path: str, content_model: ContentModel, skeleton_hash: str,
+    pdf_storage_path: str | None = None, compile_success: bool | None = None, compile_log_text: str | None = None,
 ) -> None:
     _user_ref(db, owner_uid).set(
         {
@@ -51,6 +52,9 @@ def set_master_resume(
                 "source_storage_path": source_storage_path,
                 "skeleton_hash": skeleton_hash,
                 "uploaded_at": _now(),
+                "pdf_storage_path": pdf_storage_path,
+                "compile_success": compile_success,
+                "compile_log_text": compile_log_text,
             }
         },
         merge=True,

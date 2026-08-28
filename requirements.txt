@@ -1,4 +1,5 @@
 streamlit
+streamlit-pdf
 pydantic>=2
 groq
 jsonschema
