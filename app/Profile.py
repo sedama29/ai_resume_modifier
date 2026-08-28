@@ -21,7 +21,7 @@ from llm.github_analysis import analyze_github_profile
 from overleaf.open_in_overleaf import build_open_in_overleaf_url
 
 
-from app.styling import initials, inject_custom_css, page_header
+from app.styling import initials, inject_custom_css, page_header, status_badge
 inject_custom_css()
 
 db = get_db()
@@ -31,7 +31,9 @@ render_user_badge(user)
 page_header("Profile", "Your candidate information and master resume.")
 
 
-def _handle_upload(tex_text: str, profile: dict) -> None:
+def _handle_upload(
+    tex_text: str, profile: dict, original_filename: str | None = None, asset_files: dict[str, bytes] | None = None,
+) -> None:
     try:
         parsed = parse_master_tex_from_string(tex_text)
     except Exception as e:
@@ -44,12 +46,21 @@ def _handle_upload(tex_text: str, profile: dict) -> None:
     storage_client.upload_text(storage_path, tex_text)
     skeleton_hash = hashlib.sha256(tex_text.encode()).hexdigest()
 
+    # Supporting project files (images, .sty, .bib, fonts) -- only needed if
+    # the resume references them; most single-file resumes have none.
+    asset_files = asset_files or {}
+    asset_storage_paths = []
+    for filename, content in asset_files.items():
+        asset_path = f"masters/{user['uid']}/assets/{filename}"
+        storage_client.upload_bytes(asset_path, content, "application/octet-stream")
+        asset_storage_paths.append(asset_path)
+
     # Compile the UNMODIFIED uploaded LaTeX itself, so "View Resume" shows the
     # actual rendered document -- never a Markdown/text reconstruction of it.
     pdf_storage_path = None
     with st.spinner("Compiling PDF preview..."):
         with tempfile.TemporaryDirectory() as scratch:
-            compile_result = compile_tex(tex_text, Path(scratch) / "_master_compile")
+            compile_result = compile_tex(tex_text, Path(scratch) / "_master_compile", extra_files=asset_files)
             if compile_result.success:
                 # Must read the PDF bytes while the scratch dir still exists --
                 # it's deleted the moment this `with` block exits.
@@ -61,6 +72,7 @@ def _handle_upload(tex_text: str, profile: dict) -> None:
         db, user["uid"], storage_path, parsed.content_model, skeleton_hash,
         pdf_storage_path=pdf_storage_path, compile_success=compile_result.success,
         compile_log_text=compile_result.log_text or compile_result.error_summary,
+        original_filename=original_filename, asset_storage_paths=asset_storage_paths,
     )
     if compile_result.success:
         st.success("Master resume saved -- PDF compiled successfully.")
@@ -91,13 +103,18 @@ def _handle_upload(tex_text: str, profile: dict) -> None:
 
 def render_upload_form(profile: dict) -> None:
     uploaded = st.file_uploader("Upload your master resume (.tex)", type=["tex"])
+    with st.expander("Additional files (images, .sty, .bib, fonts -- only if your resume needs them)"):
+        extra_uploads = st.file_uploader(
+            "Supporting files", accept_multiple_files=True, label_visibility="collapsed", key="extra_files_uploader",
+        )
     use_default = st.button(
         "Use existing file at Resources/main.tex", disabled=not Path(MASTER_RESUME_PATH).exists()
     )
     if uploaded is not None:
-        _handle_upload(uploaded.getvalue().decode("utf-8"), profile)
+        asset_files = {f.name: f.getvalue() for f in (extra_uploads or [])}
+        _handle_upload(uploaded.getvalue().decode("utf-8"), profile, original_filename=uploaded.name, asset_files=asset_files)
     elif use_default:
-        _handle_upload(Path(MASTER_RESUME_PATH).read_text(), profile)
+        _handle_upload(Path(MASTER_RESUME_PATH).read_text(), profile, original_filename="main.tex")
 
 
 master_resume = repo.get_master_resume(db, user["uid"])
@@ -216,6 +233,9 @@ if master_resume:
     pdf_storage_path = master_resume.get("pdf_storage_path")
     compile_success = master_resume.get("compile_success")
     pdf_available = bool(compile_success and pdf_storage_path and storage_client.blob_exists(pdf_storage_path))
+    status_tone, status_label = {
+        "ready": ("green", "Ready"), "failed": ("red", "Compilation Failed"),
+    }.get(master_resume.get("compilation_status"), ("gray", "Not Compiled"))
 
     @st.dialog("Master Resume PDF")
     def _view_pdf_dialog(pdf_storage_path=pdf_storage_path) -> None:
@@ -233,8 +253,8 @@ if master_resume:
     with st.container(border=True):
         col1, col2 = st.columns([3, 2], vertical_alignment="center")
         with col1:
-            st.markdown(f"**{Path(master_resume['source_storage_path']).name}**")
-            st.caption("LaTeX source · Overleaf-compatible")
+            st.markdown(f"**{master_resume.get('original_filename') or Path(master_resume['source_storage_path']).name}**")
+            st.markdown(f"Status: {status_badge(status_label, status_tone)}", unsafe_allow_html=True)
         with col2:
             st.caption(f"Last updated: {str(master_resume.get('uploaded_at', ''))[:10]}")
 
@@ -247,28 +267,46 @@ if master_resume:
                 with st.expander("Why? (compile log)"):
                     st.code(master_resume.get("compile_log_text") or "(no log captured)")
 
+        tex_bytes = storage_client.download_text(master_resume["source_storage_path"]).encode("utf-8")
+
         st.write("")
-        cols = st.columns(4) if pdf_available else st.columns(2)
-        with cols[0]:
-            if overleaf_url:
-                st.link_button("Open in Overleaf", overleaf_url, use_container_width=True)
-            else:
-                st.button("Open in Overleaf", use_container_width=True, disabled=True)
         if pdf_available:
-            with cols[1]:
+            row1 = st.columns(3)
+            with row1[0]:
                 if st.button("View PDF", use_container_width=True):
                     _view_pdf_dialog()
-            with cols[2]:
+            with row1[1]:
                 st.download_button(
                     "Download PDF", storage_client.download_bytes(pdf_storage_path),
                     file_name="master_resume.pdf", mime="application/pdf", use_container_width=True,
                 )
-            with cols[3]:
-                if st.button("Replace Resume", use_container_width=True):
+            with row1[2]:
+                st.download_button(
+                    "Download TEX", tex_bytes, file_name="main.tex", mime="text/plain", use_container_width=True,
+                )
+            st.write("")
+            row2 = st.columns(2)
+            with row2[0]:
+                if overleaf_url:
+                    st.link_button("Open in Overleaf", overleaf_url, use_container_width=True)
+                else:
+                    st.button("Open in Overleaf", use_container_width=True, disabled=True)
+            with row2[1]:
+                if st.button("Replace Master Resume", use_container_width=True):
                     _replace_resume_dialog()
         else:
-            with cols[1]:
-                if st.button("Replace Resume", use_container_width=True):
+            row1 = st.columns(3)
+            with row1[0]:
+                st.download_button(
+                    "Download TEX", tex_bytes, file_name="main.tex", mime="text/plain", use_container_width=True,
+                )
+            with row1[1]:
+                if overleaf_url:
+                    st.link_button("Open in Overleaf", overleaf_url, use_container_width=True)
+                else:
+                    st.button("Open in Overleaf", use_container_width=True, disabled=True)
+            with row1[2]:
+                if st.button("Replace Master Resume", use_container_width=True):
                     _replace_resume_dialog()
 else:
     st.info("Upload your master resume .tex to get started.")

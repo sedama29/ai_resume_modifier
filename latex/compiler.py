@@ -2,6 +2,15 @@
 Compiles a .tex string to PDF locally (tectonic preferred, pdflatex fallback).
 Runs in an isolated scratch directory -- never touches Resources/. Errors are
 always surfaced (full log + a short "! "-line summary), never swallowed.
+
+Security: any authorized user (not just the Super User) can upload a LaTeX
+project, so this must never let the source run arbitrary shell commands via
+\\write18. Tectonic has no such capability at all (deliberate upstream design
+-- there is no shell-escape to disable). The pdflatex fallback is invoked
+with -no-shell-escape explicitly, rather than relying on it merely being
+absent. Extra project files (images, .sty, .bib, fonts) are written under
+the scratch dir with their paths validated to stay inside it -- rejecting
+".." traversal -- before compilation ever runs.
 """
 import shutil
 import subprocess
@@ -9,6 +18,17 @@ from dataclasses import dataclass
 from pathlib import Path
 
 TIMEOUT_SECONDS = 120
+
+
+class UnsafePathError(ValueError):
+    pass
+
+
+def _safe_join(scratch_dir: Path, relative_path: str) -> Path:
+    dest = (scratch_dir / relative_path).resolve()
+    if not dest.is_relative_to(scratch_dir.resolve()):
+        raise UnsafePathError(f"Refusing to write outside the scratch directory: {relative_path!r}")
+    return dest
 
 
 @dataclass
@@ -28,7 +48,10 @@ def _detect_engine() -> str | None:
     return None
 
 
-def compile_tex(tex_content: str, scratch_dir: Path) -> CompileResult:
+def compile_tex(tex_content: str, scratch_dir: Path, extra_files: dict[str, bytes] | None = None) -> CompileResult:
+    """extra_files: relative-path -> bytes for any supporting project files
+    (images, .sty, .bib, fonts) the main .tex references. Each path is
+    validated to resolve inside scratch_dir before being written."""
     engine = _detect_engine()
     if engine is None:
         return CompileResult(
@@ -47,11 +70,16 @@ def compile_tex(tex_content: str, scratch_dir: Path) -> CompileResult:
     tex_path = scratch_dir / "resume.tex"
     tex_path.write_text(tex_content)
 
+    for relative_path, content in (extra_files or {}).items():
+        dest = _safe_join(scratch_dir, relative_path)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(content)
+
     if engine == "tectonic":
         cmd = ["tectonic", "--outdir", str(scratch_dir), str(tex_path)]
     else:
         cmd = [
-            "pdflatex", "-interaction=nonstopmode", "-halt-on-error",
+            "pdflatex", "-interaction=nonstopmode", "-halt-on-error", "-no-shell-escape",
             "-output-directory", str(scratch_dir), str(tex_path),
         ]
 

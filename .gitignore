@@ -12,3 +12,7 @@ storage/
 *.db-shm
 data/browser_profile/
 .DS_Store
+
+# Auth-bypass test entrypoint used for local UI verification -- fakes a
+# signed-in session, must never be committed or deployed.
+app/_test_main_DO_NOT_COMMIT.py

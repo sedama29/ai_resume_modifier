@@ -103,14 +103,17 @@ if st.button("Generate", type="primary"):
         with tempfile.TemporaryDirectory() as scratch:
             result = compile_tex(tex_content, Path(scratch) / f"_compile_{name}")
 
-            tex_storage_path = f"applications/{application_id}/{name}.tex"
+            # uid-prefixed so ownership is derivable from the path alone (see
+            # firestore.rules / storage.rules) -- not just from the secrecy
+            # of the Firestore-generated application_id.
+            tex_storage_path = f"applications/{user['uid']}/{application_id}/{name}.tex"
             storage_client.upload_text(tex_storage_path, tex_content)
 
             pdf_storage_path = None
             pdf_bytes = None
             if result.success:
                 pdf_bytes = Path(result.pdf_path).read_bytes()
-                pdf_storage_path = f"applications/{application_id}/{name}.pdf"
+                pdf_storage_path = f"applications/{user['uid']}/{application_id}/{name}.pdf"
                 storage_client.upload_bytes(pdf_storage_path, pdf_bytes, "application/pdf")
 
     repo.update_resume_version_compile_result(

@@ -1,0 +1,35 @@
+// Firebase Storage security rules for AI Resume Modifier.
+//
+// IMPORTANT CONTEXT: this app's Python backend talks to Storage exclusively
+// through the Firebase Admin SDK (see app/auth/storage_client.py), which
+// BYPASSES these rules entirely, by Firebase's own design. The actual
+// enforcement today is that every call in storage_client.py is only ever
+// made with a path scoped under the authenticated session's own uid.
+//
+// These rules exist as defense-in-depth: if this project ever adds a
+// client-side Firebase SDK (a mobile app, a JS widget uploading/downloading
+// directly), these are what would actually stop cross-user access at that
+// point. Deploy via the Firebase Console's Storage > Rules tab, or
+// `firebase deploy --only storage` with the Firebase CLI.
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /masters/{uid}/{allPaths=**} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /applications/{uid}/{allPaths=**} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Default deny for anything not explicitly matched above.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

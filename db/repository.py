@@ -44,7 +44,9 @@ def _resume_version_ref(db: Client, owner_uid: str, application_id: str, resume_
 def set_master_resume(
     db: Client, owner_uid: str, source_storage_path: str, content_model: ContentModel, skeleton_hash: str,
     pdf_storage_path: str | None = None, compile_success: bool | None = None, compile_log_text: str | None = None,
+    original_filename: str | None = None, asset_storage_paths: list[str] | None = None,
 ) -> None:
+    compilation_status = "ready" if compile_success else ("failed" if compile_success is False else "not_compiled")
     _user_ref(db, owner_uid).set(
         {
             "master_resume": {
@@ -55,6 +57,9 @@ def set_master_resume(
                 "pdf_storage_path": pdf_storage_path,
                 "compile_success": compile_success,
                 "compile_log_text": compile_log_text,
+                "compilation_status": compilation_status,
+                "original_filename": original_filename,
+                "asset_storage_paths": asset_storage_paths or [],
             }
         },
         merge=True,

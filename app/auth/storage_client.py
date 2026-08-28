@@ -1,13 +1,19 @@
 """Thin wrapper around the Firebase Storage bucket. Uses the same service-
 account credential as Firestore/Auth (app/auth/admin_client.py) -- Admin SDK
-access bypasses Storage security rules entirely, same as Firestore, so there
-is no rules file to maintain here: every call is already gated by an
-owner_uid check in the caller before this module is touched.
+access bypasses Storage security rules entirely, same as Firestore. The real
+enforcement today is that every call here is already gated by an owner_uid
+check in the caller (see app/state.py's require_user()); storage.rules (repo
+root) exists as defense-in-depth for if direct client-SDK access is ever
+added later -- every path below is uid-prefixed so ownership is derivable
+from the path alone, which is what makes that file able to say anything
+meaningful.
 
 Path conventions:
-  masters/{uid}/main.tex                              user's uploaded master resume source
-  applications/{application_id}/{version_name}.tex     generated resume source per version
-  applications/{application_id}/{version_name}.pdf     compiled PDF per version
+  masters/{uid}/main.tex                                     user's uploaded master resume source
+  masters/{uid}/main.pdf                                     its compiled PDF
+  masters/{uid}/assets/{filename}                            supporting project files (images, .sty, .bib, fonts)
+  applications/{uid}/{application_id}/{version_name}.tex     generated resume source per version
+  applications/{uid}/{application_id}/{version_name}.pdf     compiled PDF per version
 """
 from datetime import timedelta
 

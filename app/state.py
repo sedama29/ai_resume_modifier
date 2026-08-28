@@ -149,8 +149,15 @@ def sign_out() -> None:
     # Deferred: require_user() is the only call site allowed to invoke
     # firebase_login_widget() in a given script run (see its comment). The
     # next run picks this up and forwards it as that single call's command.
+    #
+    # Clears the WHOLE session, not just "user" -- per-application working
+    # state (review_{app_id}, final_content_model_{app_id}, active_
+    # application_id, etc.) is scoped by application_id + re-validated
+    # against the signed-in uid on every read, so a later different user in
+    # this same browser tab could never actually reach it either way; this
+    # is just leaving nothing behind rather than relying on that.
+    st.session_state.clear()
     st.session_state["_firebase_pending_command"] = "sign_out"
-    st.session_state.pop("user", None)
     st.rerun()
 
 

@@ -1,0 +1,75 @@
+// Firestore security rules for AI Resume Modifier.
+//
+// IMPORTANT CONTEXT: this app's Python backend talks to Firestore exclusively
+// through the Firebase Admin SDK (see app/auth/admin_client.py), which is a
+// trusted server SDK that BYPASSES these rules entirely, by Firebase's own
+// design. The actual enforcement today is that every backend function in
+// db/repository.py is called with the authenticated session's own uid (see
+// app/state.py's require_user()), and every document path is scoped under
+// users/{uid}/... accordingly -- there is no code path where one user's
+// session can read or write another user's uid-scoped data.
+//
+// These rules exist as defense-in-depth: if this project ever adds a
+// client-side Firebase SDK (a mobile app, a JS widget talking to Firestore
+// directly), these are what would actually stop cross-user access at that
+// point, since the Admin SDK's bypass would no longer be the only path in.
+// Deploy via the Firebase Console's Firestore > Rules tab, or
+// `firebase deploy --only firestore:rules` with the Firebase CLI.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function authzRecord() {
+      return get(/databases/$(database)/documents/authorized_users/$(request.auth.token.email.lower())).data;
+    }
+
+    function isActiveSuperuser() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email.lower()))
+        && authzRecord().role == 'superuser'
+        && authzRecord().active == true;
+    }
+
+    // users/{uid}: candidate_profile, master_resume -- owner-only.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /job_applications/{applicationId} {
+        allow read, write: if isOwner(uid);
+
+        match /resume_versions/{versionId} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+
+      // Written only by the trusted backend today (Groq usage logging) --
+      // the owner and the Super User (for the admin usage dashboard) may
+      // read; nothing writes here via a client SDK.
+      match /api_usage_log/{logId} {
+        allow read: if isOwner(uid) || isActiveSuperuser();
+        allow write: if false;
+      }
+    }
+
+    // Keyed by lowercased email (see app/auth/authz.py) -- a signed-in user
+    // may read to check their own record (also needed for the
+    // isActiveSuperuser() lookup above); only a Super User may change it.
+    match /authorized_users/{email} {
+      allow read: if isSignedIn();
+      allow write: if isActiveSuperuser();
+    }
+
+    // Default deny for anything not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
