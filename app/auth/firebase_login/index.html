@@ -97,6 +97,12 @@
         setValue({ status: "signed_in", token: await user.getIdToken() });
       } else {
         btn.style.display = "inline-flex";
+        // btn.onclick only resets this on an error -- a SUCCESSFUL sign-in
+        // never touches it, so after a later sign_out() shows the button
+        // again (e.g. from the Access Denied screen), it stayed disabled
+        // forever with nothing to re-enable it. Reset it every time the
+        // button becomes visible again, not just on error.
+        btn.disabled = false;
         statusEl.textContent = "";
         setFrameHeight(70);
         setValue({ status: "signed_out" });
