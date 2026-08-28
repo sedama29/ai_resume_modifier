@@ -88,10 +88,17 @@
       if (user) {
         btn.style.display = "none";
         statusEl.textContent = "";
+        // Collapsed to nothing while signed in -- this widget stays
+        // mounted for the whole session now (see require_user() in
+        // app/state.py) so sign_out() always has a live, already-restored
+        // auth client to act on, but it should be invisible except when
+        // it actually needs to show the sign-in button.
+        setFrameHeight(0);
         setValue({ status: "signed_in", token: await user.getIdToken() });
       } else {
         btn.style.display = "inline-flex";
         statusEl.textContent = "";
+        setFrameHeight(70);
         setValue({ status: "signed_out" });
       }
     });
@@ -109,7 +116,10 @@
   });
 
   post("streamlit:componentReady", { apiVersion: 1 });
-  setFrameHeight(70);
+  // Starts collapsed -- most mounts are on an already-signed-in session
+  // (see require_user() in app/state.py), which never needs the button.
+  // Expanded to 70 by onAuthStateChanged above only when actually signed out.
+  setFrameHeight(0);
 </script>
 </body>
 </html>

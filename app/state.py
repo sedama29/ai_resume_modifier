@@ -33,6 +33,14 @@ def require_user() -> dict:
     signed-in AND authorized user is established in session_state."""
     user = get_current_user()
     if user is not None:
+        # Keep one live Firebase Auth JS client mounted for the whole
+        # session, not just while signed out. Otherwise sign_out() has to
+        # spin up a brand-new client on demand, which races Firebase's
+        # async restore-from-persistence and can fire signOut() before
+        # there's anything to sign out of -- looking like sign-out silently
+        # not working. The return value is ignored here; the cached
+        # session in st.session_state stays authoritative for this page.
+        firebase_login_widget(key="firebase_login")
         return user
 
     st.markdown(_HERO_HTML, unsafe_allow_html=True)
