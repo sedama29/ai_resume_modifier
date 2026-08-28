@@ -27,8 +27,6 @@ GROQ_MODEL = "openai/gpt-oss-120b"
 
 MASTER_RESUME_PATH = str(BASE_DIR / "Resources" / "main.tex")
 
-OVERLEAF_BROWSER_PROFILE_DIR = str(BASE_DIR / "storage" / "browser_profile")
-
 # Estimated Groq pricing for openai/gpt-oss-120b (per 1M tokens). Re-check
 # against console.groq.com/docs/models if this needs to stay accurate long-term.
 GROQ_INPUT_PRICE_PER_1M = 0.15

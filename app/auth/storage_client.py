@@ -15,8 +15,6 @@ Path conventions:
   applications/{uid}/{application_id}/{version_name}.tex     generated resume source per version
   applications/{uid}/{application_id}/{version_name}.pdf     compiled PDF per version
 """
-from datetime import timedelta
-
 from firebase_admin import storage as fb_storage
 
 from app.auth.admin_client import get_app
@@ -45,13 +43,3 @@ def download_bytes(storage_path: str) -> bytes:
 
 def blob_exists(storage_path: str) -> bool:
     return _bucket().blob(storage_path).exists()
-
-
-def generate_signed_url(storage_path: str, expiration_minutes: int = 15) -> str:
-    """A short-lived, publicly-fetchable URL for an otherwise-private blob --
-    used only for the "Open in Overleaf" link, since Overleaf's own server
-    (not this app, not the user's browser) has to be able to fetch the file
-    to seed a new project from it."""
-    return _bucket().blob(storage_path).generate_signed_url(
-        version="v4", expiration=timedelta(minutes=expiration_minutes), method="GET"
-    )

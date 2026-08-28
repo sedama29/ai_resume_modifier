@@ -308,7 +308,7 @@ def list_resume_versions(db: Client, owner_uid: str, application_id: str) -> lis
     return [_snap_to_dict(d) for d in docs]
 
 
-# --- generated_changes / overleaf_sync (embedded on the resume_version) -------
+# --- generated_changes (embedded on the resume_version) -----------------------
 
 def save_generated_changes(
     db: Client, owner_uid: str, application_id: str, resume_version_id: str, changes: list[dict]
@@ -319,27 +319,6 @@ def save_generated_changes(
 def list_generated_changes(db: Client, owner_uid: str, application_id: str, resume_version_id: str) -> list[dict]:
     doc = _resume_version_ref(db, owner_uid, application_id, resume_version_id).get()
     return doc.to_dict().get("generated_changes", []) if doc.exists else []
-
-
-def upsert_overleaf_sync(
-    db: Client,
-    owner_uid: str,
-    application_id: str,
-    resume_version_id: str,
-    overleaf_project_url: str | None,
-    sync_status: str,
-    error_text: str | None = None,
-) -> None:
-    _resume_version_ref(db, owner_uid, application_id, resume_version_id).update(
-        {
-            "overleaf_sync": {
-                "overleaf_project_url": overleaf_project_url,
-                "sync_status": sync_status,
-                "last_synced_at": _now(),
-                "error_text": error_text,
-            }
-        }
-    )
 
 
 # --- api_usage_log (admin-only, cross-user) ------------------------------------

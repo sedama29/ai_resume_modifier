@@ -18,7 +18,6 @@ from core.parser import extract_header_fields, parse_master_tex_from_string
 from integrations.github_client import parse_github_username
 from latex.compiler import compile_tex
 from llm.github_analysis import analyze_github_profile
-from overleaf.open_in_overleaf import build_open_in_overleaf_url
 
 
 from app.styling import initials, inject_custom_css, page_header, status_badge
@@ -74,15 +73,6 @@ def _handle_upload(
         compile_log_text=compile_result.log_text or compile_result.error_summary,
         original_filename=original_filename, asset_storage_paths=asset_storage_paths,
     )
-    if compile_result.success:
-        st.success("Master resume saved -- PDF compiled successfully.")
-    else:
-        st.warning(
-            "Master resume saved, but a PDF preview couldn't be compiled here. "
-            "The LaTeX source is unaffected -- see details on the Master Resume card below, "
-            "or use \"Open in Overleaf\" to compile it there."
-        )
-
     header_fields = extract_header_fields(parsed.original_text)
     repo.upsert_candidate_profile(
         db, user["uid"],
@@ -98,7 +88,20 @@ def _handle_upload(
         linkedin=profile.get("linkedin"),
         website=profile.get("website"),
     )
-    st.rerun()
+
+    if compile_result.success:
+        st.success("✓ Resume compiled successfully")
+        st.rerun()
+    else:
+        # No rerun here -- a rerun would wipe this error off the screen
+        # before the user ever sees it. The failure is already persisted
+        # (compile_success=False, compile_log_text set above), so the
+        # Master Resume card reflects "Compilation Failed" on the next
+        # normal page load regardless.
+        st.error("⚠ Resume compilation failed")
+        with st.expander("Compilation details", expanded=True):
+            st.code(compile_result.log_text or compile_result.error_summary or "(no log captured)")
+        st.caption("The LaTeX source itself is unaffected -- fix the issue and replace the resume to retry.")
 
 
 def render_upload_form(profile: dict) -> None:
@@ -233,79 +236,67 @@ if master_resume:
     pdf_storage_path = master_resume.get("pdf_storage_path")
     compile_success = master_resume.get("compile_success")
     pdf_available = bool(compile_success and pdf_storage_path and storage_client.blob_exists(pdf_storage_path))
-    status_tone, status_label = {
-        "ready": ("green", "Ready"), "failed": ("red", "Compilation Failed"),
-    }.get(master_resume.get("compilation_status"), ("gray", "Not Compiled"))
+    compilation_status = master_resume.get("compilation_status")
 
     @st.dialog("Master Resume PDF")
     def _view_pdf_dialog(pdf_storage_path=pdf_storage_path) -> None:
         st.pdf(storage_client.download_bytes(pdf_storage_path), height=750)
 
+    @st.dialog("Compilation Error")
+    def _view_error_dialog(log_text=master_resume.get("compile_log_text")) -> None:
+        st.code(log_text or "(no log captured)")
+
     @st.dialog("Replace Master Resume")
     def _replace_resume_dialog(profile=profile) -> None:
         render_upload_form(profile)
-
-    try:
-        overleaf_url = build_open_in_overleaf_url(storage_client.generate_signed_url(master_resume["source_storage_path"]))
-    except Exception:
-        overleaf_url = None
 
     with st.container(border=True):
         col1, col2 = st.columns([3, 2], vertical_alignment="center")
         with col1:
             st.markdown(f"**{master_resume.get('original_filename') or Path(master_resume['source_storage_path']).name}**")
-            st.markdown(f"Status: {status_badge(status_label, status_tone)}", unsafe_allow_html=True)
         with col2:
             st.caption(f"Last updated: {str(master_resume.get('uploaded_at', ''))[:10]}")
 
-        if not pdf_available:
-            st.warning(
-                "A PDF preview isn't available for this resume. The LaTeX source itself is unaffected -- "
-                "use \"Open in Overleaf\" to compile it there instead."
-            )
-            if compile_success is False:
-                with st.expander("Why? (compile log)"):
-                    st.code(master_resume.get("compile_log_text") or "(no log captured)")
+        if pdf_available:
+            st.markdown(f"Status: {status_badge('✓ Compiled', 'green')}", unsafe_allow_html=True)
+        elif compilation_status == "failed":
+            st.markdown(f"Status: {status_badge('⚠ Compilation Failed', 'red')}", unsafe_allow_html=True)
+        else:
+            st.markdown(f"Status: {status_badge('Not Compiled', 'gray')}", unsafe_allow_html=True)
 
         tex_bytes = storage_client.download_text(master_resume["source_storage_path"]).encode("utf-8")
 
         st.write("")
         if pdf_available:
-            row1 = st.columns(3)
-            with row1[0]:
+            row = st.columns(4)
+            with row[0]:
                 if st.button("View PDF", use_container_width=True):
                     _view_pdf_dialog()
-            with row1[1]:
+            with row[1]:
                 st.download_button(
                     "Download PDF", storage_client.download_bytes(pdf_storage_path),
                     file_name="master_resume.pdf", mime="application/pdf", use_container_width=True,
                 )
-            with row1[2]:
+            with row[2]:
                 st.download_button(
                     "Download TEX", tex_bytes, file_name="main.tex", mime="text/plain", use_container_width=True,
                 )
-            st.write("")
-            row2 = st.columns(2)
-            with row2[0]:
-                if overleaf_url:
-                    st.link_button("Open in Overleaf", overleaf_url, use_container_width=True)
-                else:
-                    st.button("Open in Overleaf", use_container_width=True, disabled=True)
-            with row2[1]:
+            with row[3]:
                 if st.button("Replace Master Resume", use_container_width=True):
                     _replace_resume_dialog()
         else:
-            row1 = st.columns(3)
-            with row1[0]:
+            row = st.columns(3)
+            with row[0]:
+                if compilation_status == "failed":
+                    if st.button("View Error", use_container_width=True):
+                        _view_error_dialog()
+                else:
+                    st.button("View Error", use_container_width=True, disabled=True)
+            with row[1]:
                 st.download_button(
                     "Download TEX", tex_bytes, file_name="main.tex", mime="text/plain", use_container_width=True,
                 )
-            with row1[1]:
-                if overleaf_url:
-                    st.link_button("Open in Overleaf", overleaf_url, use_container_width=True)
-                else:
-                    st.button("Open in Overleaf", use_container_width=True, disabled=True)
-            with row1[2]:
+            with row[2]:
                 if st.button("Replace Master Resume", use_container_width=True):
                     _replace_resume_dialog()
 else:

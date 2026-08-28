@@ -5,7 +5,6 @@ groq
 jsonschema
 requests
 trafilatura
-selenium
 python-dotenv
 pytest
 firebase-admin
