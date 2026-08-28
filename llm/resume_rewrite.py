@@ -14,7 +14,9 @@ def _format_confirmed_answers(confirmed_answers: list[dict]) -> str:
     lines = []
     for a in confirmed_answers:
         detail = f" Detail: {a['answer_detail_text']}" if a.get("answer_detail_text") else ""
-        lines.append(f"- id={a['question_id']}: \"{a['question_text']}\" -> confirmed yes.{detail}")
+        tier = a.get("experience_tier")
+        tier_note = f" [experience tier: {tier} -- phrase accordingly, see rules above]" if tier else ""
+        lines.append(f"- id={a['question_id']}: \"{a['question_text']}\" -> confirmed yes.{detail}{tier_note}")
     return "\n".join(lines)
 
 

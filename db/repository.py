@@ -202,6 +202,21 @@ def save_followup_answers(
     ref.update({"followup_questions": questions})
 
 
+def add_confirmed_followup_entry(db: Client, owner_uid: str, application_id: str, entry: dict) -> None:
+    """Appends an already-answered entry directly into the followup_questions
+    array -- used for GitHub/learning discoveries confirmed on the Follow-up
+    Questions page's second phase, which aren't part of the LLM-generated
+    question set. Reusing the same array means list_confirmed_answers_with_
+    question_text() (and resume_rewrite downstream of it) picks these up with
+    no further plumbing. `entry` must include question_id, question_text,
+    answer_bool=True, answer_detail_text, and experience_tier."""
+    ref = _app_ref(db, owner_uid, application_id)
+    doc = ref.get()
+    questions = doc.to_dict().get("followup_questions", []) if doc.exists else []
+    questions.append({"order_index": len(questions), "answered_at": _now(), **entry})
+    ref.update({"followup_questions": questions})
+
+
 def list_confirmed_answers_with_question_text(db: Client, owner_uid: str, application_id: str) -> list[dict]:
     """Answers where answer_bool == true -- the only valid source_answer_id
     targets for anything the resume rewrite marks as 'added'. A question and
@@ -213,6 +228,7 @@ def list_confirmed_answers_with_question_text(db: Client, owner_uid: str, applic
             "question_id": q["question_id"],
             "question_text": q["question_text"],
             "answer_detail_text": q.get("answer_detail_text"),
+            "experience_tier": q.get("experience_tier"),
         }
         for q in questions
         if q.get("answer_bool") is True

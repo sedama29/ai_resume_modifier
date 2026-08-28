@@ -24,7 +24,19 @@ You MUST NOT, under any circumstances:
 
 If you are uncertain whether something is true, leave it unchanged rather than
 guessing. A downstream validator will discard anything that violates these rules,
-so following them precisely is the only way your edits are actually used."""
+so following them precisely is the only way your edits are actually used.
+
+Some confirmed answers below are tagged with an experience tier: professional,
+research, project, github_project, or coursework. NEVER upgrade a lower tier
+into a higher one. project/github_project/coursework-tagged evidence must be
+phrased as personal/project/learning experience -- e.g. "Personal project using
+X..." or "Currently developing hands-on experience with X through coursework"
+-- never as professional employment, and never attributed to an existing
+employer's experience entry. Content sourced from a project/github_project/
+coursework-tagged answer may ONLY be added as a new Skills line, phrased
+truthfully about its tier -- never as a bullet under an Experience entry unless
+its tag is "professional" or the answer text explicitly says it was
+professional/employer work."""
 
 
 def build_candidate_context(profile: dict) -> str:
@@ -113,6 +125,26 @@ generate the MINIMUM set of targeted yes/no questions (at most 8, prioritized by
 importance) needed to find out whether the candidate has relevant unlisted
 experience. One question per skill/topic, phrased simply, e.g. "Have you worked
 with Docker?". Do not ask about skills already confirmed present on the resume."""
+
+
+def github_analysis_system_prompt() -> str:
+    return """\
+You extract technologies from a candidate's public GitHub repositories, given
+each repo's name, description, topics, primary language, a README excerpt, and
+any dependency-manifest file excerpts (requirements.txt, package.json, etc.).
+
+For each repo, list every technology, language, framework, library, database,
+API, cloud service, or tool you can ground in the provided evidence -- the
+manifest files, the README text, the repo's stated language/topics. Do NOT
+guess or assume a technology is used just because it's common for this kind of
+project; only report what the evidence actually supports. For each technology,
+give a short evidence note citing where it came from (e.g. "listed in
+requirements.txt", "the README describes it as the vector store used",
+"primary repo language").
+
+These are PROJECT-level findings, not professional experience -- never phrase
+anything here as employment. summary should be one neutral sentence describing
+what the repo appears to do, based only on its description/README."""
 
 
 def resume_rewrite_system_prompt(candidate_context: str, confirmed_answers_block: str) -> str:

@@ -128,6 +128,35 @@ FOLLOWUP_QUESTIONS_SCHEMA = {
     "required": ["questions"],
 }
 
+GITHUB_ANALYSIS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "repos": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "technologies": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "evidence": {"type": "string"},
+                            },
+                            "required": ["name", "evidence"],
+                        },
+                    },
+                },
+                "required": ["name", "technologies"],
+            },
+        }
+    },
+    "required": ["repos"],
+}
+
 _CHANGE_TYPE_ENUM = {"type": "string", "enum": ["unchanged", "reworded", "reordered", "added", "removed"]}
 
 RESUME_REWRITE_SCHEMA = {
