@@ -1,3 +1,5 @@
+import time
+
 from google.cloud.firestore_v1 import Client
 
 import streamlit as st
@@ -110,7 +112,11 @@ def require_user() -> dict:
         with col2:
             if st.button("Back to Sign In", type="primary", use_container_width=True):
                 sign_out()
-        st.stop()
+        # Auto-recover after a moment too, not just on a manual click -- so a
+        # reload (or someone who never clicks the button) doesn't stay stuck
+        # here indefinitely; the message is still shown for a moment first.
+        time.sleep(3)
+        sign_out()
 
     authz.record_login(email, claims["uid"])
     st.session_state["user"] = {
