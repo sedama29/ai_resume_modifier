@@ -210,6 +210,7 @@ _FLOW_STEPS = [
     ("match", "Match"),
     ("questions", "Questions"),
     ("review", "Review"),
+    ("ats_check", "ATS Check"),
     ("generate", "Generate"),
 ]
 
@@ -314,6 +315,28 @@ def requirement_row(label: str, status: str, detail: str) -> None:
             {status_badge(status_label, tone)}
           </div>
           <div style="color:var(--muted);font-size:0.85rem;margin-top:3px;">{detail}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+ATS_TONE_LABELS = {"green": "Good", "yellow": "Needs Improvement", "red": "Potential Issues", "gray": "Not Checked"}
+
+
+def ats_category_row(label: str, tone: str, summary: str) -> None:
+    """One row of the ATS compatibility summary -- same visual shape as
+    requirement_row, since it's the same "label + status pill + one-line
+    detail" pattern, just driven by an explicit tone rather than a status
+    enum lookup."""
+    st.markdown(
+        f"""
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="font-weight:600;font-size:0.9rem;color:var(--ink);">{label}</div>
+            {status_badge(ATS_TONE_LABELS.get(tone, tone), tone)}
+          </div>
+          <div style="color:var(--muted);font-size:0.85rem;margin-top:3px;">{summary}</div>
         </div>
         """,
         unsafe_allow_html=True,

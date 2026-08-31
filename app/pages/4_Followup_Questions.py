@@ -50,7 +50,23 @@ if not questions:
     else:
         st.success("No follow-up questions needed -- your resume already covers this job's key skills.")
 
-WHERE_OPTIONS = ["Work", "Research", "Academic project", "Personal project", "Internship", "Other"]
+# Distinguishes professional experience from projects/learning at the point of
+# confirmation, rather than only recording a bare yes/no -- this tier flows
+# into resume_rewrite's phrasing rule (never upgrade a project/GitHub repo/
+# course into professional experience) the same way phase 2's discovery
+# questions already do.
+WHERE_OPTIONS = [
+    "Professional work", "Research / academic work", "Personal project",
+    "GitHub project", "Coursework / learning", "Other",
+]
+WHERE_TIER = {
+    "Professional work": "professional",
+    "Research / academic work": "research",
+    "Personal project": "project",
+    "GitHub project": "github_project",
+    "Coursework / learning": "coursework",
+    "Other": "project",  # conservative default -- ambiguous, never auto-upgraded to professional
+}
 
 idx_key = f"followup_idx_{application_id}"
 answers_key = f"followup_answers_{application_id}"
@@ -69,24 +85,37 @@ if phase1_idx < phase1_total:
     q = questions[phase1_idx]
     st.caption(f"Question {phase1_idx + 1} of {phase1_total}")
     with st.container(border=True):
-        st.markdown(f"**{q['question_text']}**")
+        st.markdown(f"#### {q['question_text']}")
         level = st.radio(
-            "Your experience level", ["Yes", "No", "Limited exposure", "Not sure"],
-            key=f"level_{q['question_id']}_{phase1_idx}", label_visibility="collapsed",
+            "Your experience level", ["Yes", "No", "Limited experience", "Not sure"],
+            index=None, key=f"level_{q['question_id']}_{phase1_idx}", label_visibility="collapsed",
         )
-        detail = None
-        if level in ("Yes", "Limited exposure"):
-            where = st.selectbox("Where did you use it?", WHERE_OPTIONS, key=f"where_{q['question_id']}_{phase1_idx}")
-            what_for = st.text_input("What did you use it for?", key=f"what_{q['question_id']}_{phase1_idx}")
-            prefix = "(Limited exposure) " if level == "Limited exposure" else ""
-            detail = f"{prefix}{where}: {what_for}".strip() or None
+
+        where = what_for = None
+        if level in ("Yes", "Limited experience"):
+            where = st.radio(
+                "Where did you use it?", WHERE_OPTIONS,
+                index=None, key=f"where_{q['question_id']}_{phase1_idx}",
+            )
+            what_for = st.text_area(
+                "Briefly describe how you used it.",
+                placeholder="Example: Used Python and FastAPI to troubleshoot and optimize a production application.",
+                key=f"what_{q['question_id']}_{phase1_idx}",
+            )
+
+        confirmed = level in ("Yes", "Limited experience")
+        answered = level is not None and (not confirmed or where is not None)
 
         st.write("")
         _, btn_col = st.columns([3, 1])
         with btn_col:
             label = "Finish →" if phase1_idx == phase1_total - 1 else "Continue →"
-            if st.button(label, type="primary", use_container_width=True, key=f"next_{phase1_idx}"):
-                st.session_state[answers_key][q["question_id"]] = (level in ("Yes", "Limited exposure"), detail)
+            if st.button(label, type="primary", use_container_width=True, key=f"next_{phase1_idx}", disabled=not answered):
+                tier = WHERE_TIER.get(where) if confirmed else None
+                prefix = "(Limited experience) " if level == "Limited experience" else ""
+                detail = f"{prefix}{where}: {what_for}".strip() if what_for else f"{prefix}{where}".strip()
+                detail = detail if confirmed else None
+                st.session_state[answers_key][q["question_id"]] = (confirmed, detail, tier)
                 st.session_state[idx_key] += 1
                 st.rerun()
     st.stop()
@@ -157,7 +186,7 @@ if discoveries and ev_idx < len(discoveries):
 
     if row.tier == "github_project":
         with st.container(border=True):
-            st.markdown("**Potential GitHub experience found**")
+            st.markdown("#### Potential GitHub experience found")
             st.write(f"**Technology:** {row.skill}")
             st.write(f"**Repository:** {row.detail.get('repo', row.found_in)}")
             if row.detail.get("evidence"):
@@ -165,29 +194,31 @@ if discoveries and ev_idx < len(discoveries):
 
             confirm = st.radio(
                 f"Have you actually worked with {row.skill} in this project?",
-                ["Yes", "No", "Limited exposure", "I need to review this"],
-                key=f"gh_confirm_{ev_idx}",
+                ["Yes", "No", "Limited experience", "I need to review this"],
+                index=None, key=f"gh_confirm_{ev_idx}",
             )
             include_choice = None
-            if confirm in ("Yes", "Limited exposure"):
+            if confirm in ("Yes", "Limited experience"):
                 include_choice = st.radio(
                     "Would you like to include this experience in your resume?",
                     ["Yes, add to Projects", "Yes, add to Skills", "No", "Keep for future applications only"],
-                    key=f"gh_include_{ev_idx}",
+                    index=None, key=f"gh_include_{ev_idx}",
                 )
+
+            answered = confirm is not None and (confirm not in ("Yes", "Limited experience") or include_choice is not None)
 
             st.write("")
             _, btn_col = st.columns([3, 1])
             with btn_col:
-                if st.button("Continue →", type="primary", use_container_width=True, key=f"gh_next_{ev_idx}"):
+                if st.button("Continue →", type="primary", use_container_width=True, key=f"gh_next_{ev_idx}", disabled=not answered):
                     repo_label = row.detail.get("repo", row.found_in)
                     question_text = f"Have you worked with {row.skill} in the {repo_label} project?"
-                    prefix = "(Limited exposure) " if confirm == "Limited exposure" else ""
+                    prefix = "(Limited experience) " if confirm == "Limited experience" else ""
                     evidence_detail = f"{prefix}Repository: {repo_label}. {row.detail.get('evidence', '')}".strip()
-                    if confirm in ("Yes", "Limited exposure") and include_choice in ("Yes, add to Projects", "Yes, add to Skills"):
+                    if confirm in ("Yes", "Limited experience") and include_choice in ("Yes, add to Projects", "Yes, add to Skills"):
                         decision = "add_projects" if include_choice == "Yes, add to Projects" else "add_skills"
                         _persist("github_project", decision, evidence_detail, question_text, True, row)
-                    elif confirm in ("Yes", "Limited exposure") and include_choice == "Keep for future applications only":
+                    elif confirm in ("Yes", "Limited experience") and include_choice == "Keep for future applications only":
                         _persist("github_project", "keep_future", evidence_detail, question_text, False, row)
                     # "No" or "I need to review this" -- nothing stored, it can resurface later.
                     st.session_state[ev_idx_key] += 1
@@ -195,7 +226,7 @@ if discoveries and ev_idx < len(discoveries):
 
     else:  # row.tier == "coursework"
         with st.container(border=True):
-            st.markdown("**Learning experience found**")
+            st.markdown("#### Learning experience found")
             st.write(f"You indicated you're currently learning **{row.skill}** through {row.found_in}.")
 
             outside = st.radio(
@@ -204,22 +235,26 @@ if discoveries and ev_idx < len(discoveries):
                     "Yes, professionally", "Yes, in a research/work project",
                     "Yes, in a personal/GitHub project", "Only through coursework", "No",
                 ],
-                key=f"learn_outside_{ev_idx}",
+                index=None, key=f"learn_outside_{ev_idx}",
             )
 
             where = what_for = None
             research_include = project_choice = coursework_choice = None
 
             if outside == "Yes, professionally":
-                where = st.selectbox("Where did you use it?", WHERE_OPTIONS, key=f"learn_where_{ev_idx}")
-                what_for = st.text_input("What did you use it for?", key=f"learn_what_{ev_idx}")
+                where = st.radio("Where did you use it?", WHERE_OPTIONS, index=None, key=f"learn_where_{ev_idx}")
+                what_for = st.text_area(
+                    "Briefly describe how you used it.",
+                    placeholder="Example: Used Python and FastAPI to troubleshoot and optimize a production application.",
+                    key=f"learn_what_{ev_idx}",
+                )
             elif outside == "Yes, in a research/work project":
-                research_include = st.radio("Would you like to include this?", ["Yes", "No"], key=f"learn_research_{ev_idx}")
+                research_include = st.radio("Would you like to include this?", ["Yes", "No"], index=None, key=f"learn_research_{ev_idx}")
             elif outside == "Yes, in a personal/GitHub project":
                 project_choice = st.radio(
                     "Would you like to include this project or technology in your resume?",
                     ["Add to Projects", "Add to Skills", "Keep for future applications", "Don't include"],
-                    key=f"learn_project_{ev_idx}",
+                    index=None, key=f"learn_project_{ev_idx}",
                 )
             elif outside == "Only through coursework":
                 st.info(
@@ -230,13 +265,26 @@ if discoveries and ev_idx < len(discoveries):
                     "Would you like to include it in your Skills section as a technology you are "
                     "currently developing experience with?",
                     ["Yes", "No", "Keep for future applications"],
-                    key=f"learn_coursework_{ev_idx}",
+                    index=None, key=f"learn_coursework_{ev_idx}",
                 )
+
+            if outside is None:
+                answered = False
+            elif outside == "Yes, professionally":
+                answered = where is not None
+            elif outside == "Yes, in a research/work project":
+                answered = research_include is not None
+            elif outside == "Yes, in a personal/GitHub project":
+                answered = project_choice is not None
+            elif outside == "Only through coursework":
+                answered = coursework_choice is not None
+            else:  # "No"
+                answered = True
 
             st.write("")
             _, btn_col = st.columns([3, 1])
             with btn_col:
-                if st.button("Continue →", type="primary", use_container_width=True, key=f"learn_next_{ev_idx}"):
+                if st.button("Continue →", type="primary", use_container_width=True, key=f"learn_next_{ev_idx}", disabled=not answered):
                     if outside == "Yes, professionally":
                         detail_text = f"{where}: {what_for}".strip(": ") or None
                         _persist(

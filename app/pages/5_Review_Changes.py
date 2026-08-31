@@ -187,4 +187,4 @@ else:
 
         st.session_state[f"final_content_model_{application_id}"] = final
         repo.update_job_application_status(db, user["uid"], application_id, "reviewed")
-        st.switch_page("pages/6_Generate.py")
+        st.switch_page("pages/5b_ATS_Check.py")

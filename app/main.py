@@ -46,6 +46,7 @@ flow_pages = [
     st.Page("pages/3_Match_Summary.py", title="Match", url_path="flow-match"),
     st.Page("pages/4_Followup_Questions.py", title="Questions", url_path="flow-questions"),
     st.Page("pages/5_Review_Changes.py", title="Review", url_path="flow-review"),
+    st.Page("pages/5b_ATS_Check.py", title="ATS Check", url_path="flow-ats-check"),
     st.Page("pages/6_Generate.py", title="Generate", url_path="flow-generate"),
 ]
 

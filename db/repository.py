@@ -192,21 +192,26 @@ def list_followup_questions(db: Client, owner_uid: str, application_id: str) -> 
 
 
 def save_followup_answers(
-    db: Client, owner_uid: str, application_id: str, answers: dict[str, tuple[bool | None, str | None]]
+    db: Client, owner_uid: str, application_id: str,
+    answers: dict[str, tuple[bool | None, str | None, str | None]],
 ) -> None:
-    """answers: question_id -> (confirmed, detail_text). One read + one write
-    for the whole batch, not one write per question -- Firestore has no
-    "update the array element matching this key" op, so a per-item loop would
-    otherwise mean N wasteful read-modify-writes of the same document."""
+    """answers: question_id -> (confirmed, detail_text, experience_tier). One
+    read + one write for the whole batch, not one write per question --
+    Firestore has no "update the array element matching this key" op, so a
+    per-item loop would otherwise mean N wasteful read-modify-writes of the
+    same document. experience_tier mirrors the same field
+    add_confirmed_followup_entry() sets, so resume_rewrite's tier-aware
+    phrasing rule applies uniformly regardless of which phase confirmed it."""
     ref = _app_ref(db, owner_uid, application_id)
     doc = ref.get()
     questions = doc.to_dict().get("followup_questions", []) if doc.exists else []
     now = _now()
     for q in questions:
         if q["question_id"] in answers:
-            confirmed, detail = answers[q["question_id"]]
+            confirmed, detail, tier = answers[q["question_id"]]
             q["answer_bool"] = confirmed
             q["answer_detail_text"] = detail
+            q["experience_tier"] = tier
             q["answered_at"] = now
     ref.update({"followup_questions": questions})
 
